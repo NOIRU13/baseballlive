@@ -1,0 +1,460 @@
+/* ==================== 得点ログセクション ==================== */
+.score-log-section {
+    position: absolute;
+    top: 240px; /* スコアボードの下（さらに80px追加） */
+    left: 50%;
+    transform: translateX(-50%);
+    width: 800px;
+    max-height: 200px;
+    z-index: 20;
+    pointer-events: none;
+}
+
+.score-log-header {
+    font-family: 'Oswald', sans-serif;
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--accent, #ffd700);
+    letter-spacing: 3px;
+    text-align: center;
+    margin-bottom: 10px;
+    padding: 5px 20px;
+    background: linear-gradient(90deg, transparent, rgba(0, 0, 0, 0.6), transparent);
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+}
+
+.score-log-container {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    max-height: 250px; /* Increase height for split view */
+    overflow-y: hidden;
+    padding: 0 20px;
+}
+
+.score-log-team-box {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    background: rgba(0, 0, 0, 0.4); /* Slight background to separate */
+    padding: 5px;
+    border-radius: 4px;
+    min-height: 30px;
+}
+
+/* Border color for teams */
+#score-log-team-away {
+    border-left: 3px solid #3498db;
+}
+
+#score-log-team-home {
+    border-left: 3px solid #e74c3c;
+}
+
+.score-log-item {
+    font-family: 'Noto Sans JP', sans-serif;
+    font-size: 16px; /* Compact font */
+    font-weight: 700;
+    color: #fff;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+    background: transparent;
+    padding: 2px 5px;
+    white-space: nowrap;
+    text-align: left;
+    display: block; /* Block for simple text */
+}
+
+/* Specific styling for compact mode if needed, but above is already compact */
+.score-log-item.compact {
+    font-size: 18px;
+    letter-spacing: 1px;
+}
+
+@keyframes fadeInSlideUp {
+    from { opacity: 0; transform: translateY(5px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+
+/* ==================== 両チーム投手リレーセクション ==================== */
+.pitcher-relay-section {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 900px;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    pointer-events: none;
+    z-index: 15;
+}
+
+.team-pitcher-panel {
+    width: 280px;
+    background: linear-gradient(180deg, rgba(0, 0, 0, 0.85) 0%, rgba(20, 30, 50, 0.9) 100%);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 10px;
+    padding: 15px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(8px);
+}
+
+/* アウェイチーム（左側） */
+.away-pitcher-panel {
+    border-left: 4px solid #3498db;
+    transform: perspective(500px) rotateY(5deg);
+}
+
+/* ホームチーム（右側） */
+.home-pitcher-panel {
+    border-right: 4px solid #e74c3c;
+    transform: perspective(500px) rotateY(-5deg);
+    text-align: right;
+}
+
+.pitcher-team-label {
+    font-family: 'Oswald', sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    color: #888;
+    letter-spacing: 2px;
+    margin-bottom: 10px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.away-pitcher-panel .pitcher-team-label {
+    color: #3498db;
+}
+
+.home-pitcher-panel .pitcher-team-label {
+    color: #e74c3c;
+}
+
+.pitcher-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.pitcher-entry {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 8px 10px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 6px;
+    transition: all 0.3s ease;
+    min-height: 40px;
+}
+
+.home-pitcher-panel .pitcher-entry {
+    flex-direction: row-reverse;
+}
+
+.pitcher-entry.starter {
+    background: linear-gradient(90deg, rgba(255, 215, 0, 0.1) 0%, transparent 100%);
+    border-left: 3px solid #ffd700;
+}
+
+.home-pitcher-panel .pitcher-entry.starter {
+    background: linear-gradient(-90deg, rgba(255, 215, 0, 0.1) 0%, transparent 100%);
+    border-left: none;
+    border-right: 3px solid #ffd700;
+}
+
+.pitcher-entry.active {
+    background: linear-gradient(90deg, rgba(46, 204, 113, 0.2) 0%, transparent 100%);
+    border-left: 3px solid #2ecc71;
+}
+
+.home-pitcher-panel .pitcher-entry.active {
+    background: linear-gradient(-90deg, rgba(46, 204, 113, 0.2) 0%, transparent 100%);
+    border-left: none;
+    border-right: 3px solid #2ecc71;
+}
+
+.pitcher-role {
+    font-family: 'Oswald', sans-serif;
+    font-size: 12px;
+    font-weight: 600;
+    color: #aaa;
+    letter-spacing: 1px;
+    min-width: 30px;
+    text-transform: uppercase;
+    padding-top: 2px;
+}
+
+.pitcher-entry.starter .pitcher-role {
+    color: #ffd700;
+}
+
+.pitcher-entry.active .pitcher-role {
+    color: #2ecc71;
+}
+
+.pitcher-name {
+    font-family: 'Noto Sans JP', sans-serif;
+    font-size: 20px;
+    font-weight: 700;
+    color: #fff;
+    flex: 1;
+    white-space: normal;
+    word-break: break-word;
+    line-height: 1.3;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+}
+
+/* 継投投手のスタイル */
+.pitcher-entry.relief {
+    background: rgba(255, 255, 255, 0.03);
+    padding: 6px 10px;
+}
+
+.pitcher-entry.relief .pitcher-role {
+    font-size: 11px;
+    color: #888;
+}
+
+.pitcher-entry.relief .pitcher-name {
+    font-size: 16px;
+    color: #ccc;
+    line-height: 1.3;
+    white-space: nowrap;
+}
+
+/* 現在マウンドにいる投手を強調 */
+.pitcher-entry.on-mound {
+    background: linear-gradient(90deg, rgba(231, 76, 60, 0.25) 0%, transparent 100%);
+    border-left: 3px solid #e74c3c;
+    box-shadow: 0 0 15px rgba(231, 76, 60, 0.3);
+}
+
+.home-pitcher-panel .pitcher-entry.on-mound {
+    background: linear-gradient(-90deg, rgba(231, 76, 60, 0.25) 0%, transparent 100%);
+    border-left: none;
+    border-right: 3px solid #e74c3c;
+}
+
+.pitcher-entry.on-mound .pitcher-name {
+    color: #fff;
+    font-size: 22px;
+}
+
+.pitcher-entry.on-mound .pitcher-role::after {
+    content: " ●";
+    color: #e74c3c;
+    animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+}
+
+/* リリーフセクション */
+.relief-section {
+    margin-top: 10px;
+    display: none; /* デフォルトは非表示、リリーフがいる場合のみ表示 */
+}
+
+.relief-section.has-relievers {
+    display: block;
+}
+
+.relief-header {
+    font-family: 'Oswald', sans-serif;
+    font-size: 11px;
+    font-weight: 600;
+    color: #888;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    padding: 5px 10px;
+    margin-bottom: 5px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.relief-list {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.relief-pitcher-item {
+    font-family: 'Noto Sans JP', sans-serif;
+    font-size: 15px;
+    font-weight: 600;
+    color: #ccc;
+    padding: 5px 10px;
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 4px;
+    white-space: nowrap;
+    transition: all 0.3s ease;
+}
+
+.relief-pitcher-item.on-mound {
+    background: linear-gradient(90deg, rgba(231, 76, 60, 0.25) 0%, transparent 100%);
+    border-left: 3px solid #e74c3c;
+    color: #fff;
+    font-size: 16px;
+    box-shadow: 0 0 10px rgba(231, 76, 60, 0.2);
+}
+
+.home-pitcher-panel .relief-pitcher-item.on-mound {
+    background: linear-gradient(-90deg, rgba(231, 76, 60, 0.25) 0%, transparent 100%);
+    border-left: none;
+    border-right: 3px solid #e74c3c;
+}
+
+
+/* ==================== BSO & ランナー表示（中央下部） ==================== */
+.bso-runner-center {
+    position: absolute;
+    bottom: 25px; /* 少し余裕を持たせる */
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+    gap: 40px;
+    padding: 12px 30px;
+    /* ガラスモーフィズム風背景 */
+    background: linear-gradient(180deg, rgba(10, 15, 25, 0.85) 0%, rgba(20, 30, 45, 0.95) 100%);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 16px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6), inset 0 1px 1px rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(8px);
+    z-index: 100;
+}
+
+/* --- BSO表示 --- */
+.bso-display {
+    display: flex;
+    flex-direction: column;
+    gap: 6px; /* 行間 */
+}
+
+.count-row {
+    display: flex;
+    align-items: center;
+    gap: 10px; /* ラベルとドットの間隔 */
+}
+
+.count-label {
+    font-family: 'Oswald', sans-serif;
+    font-size: 18px;
+    font-weight: 700;
+    width: 24px;
+    text-align: center;
+    line-height: 1;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+    position: relative;
+    top: 1px; /* 微調整 */
+}
+
+.count-label.b { color: #2ecc71; text-shadow: 0 0 10px rgba(46, 204, 113, 0.3); }
+.count-label.s { color: #f1c40f; text-shadow: 0 0 10px rgba(241, 196, 15, 0.3); }
+.count-label.o { color: #e74c3c; text-shadow: 0 0 10px rgba(231, 76, 60, 0.3); }
+
+.count-dots {
+    display: flex;
+    gap: 5px; /* ドット間隔 */
+}
+
+.dot {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background-color: #2a2a2a; /* 消灯時 */
+    box-shadow: inset 0 1px 3px rgba(0,0,0,0.8);
+    transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    border: 1px solid rgba(255,255,255,0.05);
+}
+
+/* 点灯時 */
+#ball-dots .dot.active {
+    background-color: #2ecc71;
+    box-shadow: 0 0 8px #2ecc71, inset 0 -2px 4px rgba(0,0,0,0.2);
+    border-color: #27ae60;
+}
+#strike-dots .dot.active {
+    background-color: #f1c40f;
+    box-shadow: 0 0 8px #f1c40f, inset 0 -2px 4px rgba(0,0,0,0.2);
+    border-color: #f39c12;
+}
+#out-dots .dot.active {
+    background-color: #e74c3c;
+    box-shadow: 0 0 8px #e74c3c, inset 0 -2px 4px rgba(0,0,0,0.2);
+    border-color: #c0392b;
+}
+
+/* --- ランナー表示（ダイヤモンド） --- */
+.runner-diamond {
+    position: relative;
+    width: 60px; /* サイズ調整 */
+    height: 60px;
+    transform: rotate(45deg); 
+    margin: 5px 15px 5px 5px; /* マージン調整 */
+}
+
+/* ベース共通スタイル */
+.base-indicator {
+    position: absolute;
+    width: 28px; /* サイズ調整: 60pxの枠に対して大きすぎず */
+    height: 28px;
+    background-color: rgba(255,255,255,0.1); /* 消灯時 */
+    border: 2px solid rgba(255,255,255,0.2);
+    transition: all 0.2s ease;
+    box-shadow: inset 0 0 5px rgba(0,0,0,0.5);
+}
+
+/* 点灯時 */
+.base-indicator.active {
+    background-color: #ff3333;
+    border-color: #ffcccc;
+    box-shadow: 0 0 10px #ff0000;
+    z-index: 10;
+}
+
+/* 
+   rotate(-45deg)がかかっているため:
+   First (1塁) -> 右上 -> css的には right:0, top:0
+   Second (2塁) -> 左上 -> css的には left:0, top:0
+   Third (3塁) -> 左下 -> css的には left:0, bottom:0
+   Home -> 右下 -> css的には right:0, bottom:0 ...いや、4つ配置するなら隙間が必要
+*/
+
+/* 
+   修正: ダイヤモンドを綺麗に配置するために、四隅ぴったりより少し調整するか、
+   あるいはgapを作る。
+*/
+.base-indicator.first {
+    top: 0;
+    right: 0;
+    border-radius: 3px;
+}
+.base-indicator.second {
+    top: 0;
+    left: 0;
+    border-radius: 3px;
+}
+.base-indicator.third {
+    bottom: 0;
+    left: 0;
+    border-radius: 3px;
+}
+/* ホームベース（装飾） */
+.home-plate-indicator {
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    width: 28px;
+    height: 28px;
+    background-color: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.1);
+    /* border-top-left-radius: 14px; ホームベース形状とか考えずシンプルに */
+    border-radius: 3px;
+    pointer-events: none;
+}
+
+

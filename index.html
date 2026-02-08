@@ -16,7 +16,7 @@
     <div id="broadcast-layout">
       <!-- ==================== 左サイドバー：Away Lineup ==================== -->
       <div class="sidebar left-sidebar">
-        <div class="sidebar-header" id="sidebar-away-name">AWAY</div>
+        <div class="sidebar-header" id="sidebar-away-name"></div>
         <div class="lineup-list" id="lineup-away-display">
           <!-- JSで生成 -->
         </div>
@@ -30,13 +30,60 @@
         <div class="center-field-display">
           <div class="field-fan-shape"></div>
         </div>
+        
+        <!-- ==================== 中央情報エリア ==================== -->
+        
+        <!-- 得点ログエリア (中央上部) -->
+        <div id="score-log-section" class="score-log-section">
+            <div class="score-log-header">SCORING PLAYS</div>
+            <div id="score-log-container" class="score-log-container">
+                <div id="score-log-team-away" class="score-log-team-box"></div>
+                <div id="score-log-team-home" class="score-log-team-box"></div>
+            </div>
+        </div>
 
+        <!-- 両チーム投手リレー情報 (中央) -->
+        <div class="pitcher-relay-section">
+            <!-- アウェイチーム（左側） -->
+            <div class="team-pitcher-panel away-pitcher-panel" id="away-pitcher-panel">
+                <div class="pitcher-team-label" id="away-pitcher-team-label">AWAY</div>
+                <div class="pitcher-list">
+                    <div class="pitcher-entry starter" id="away-starter-entry">
+                        <span class="pitcher-role">先発</span>
+                        <span class="pitcher-name" id="away-starter-name">-</span>
+                    </div>
+                    <div class="relief-section" id="away-relief-section">
+                        <div class="relief-header">リリーフ</div>
+                        <div class="relief-list" id="away-relay-container">
+                            <!-- リリーフ投手がJSで追加される -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- ホームチーム（右側） -->
+            <div class="team-pitcher-panel home-pitcher-panel" id="home-pitcher-panel">
+                <div class="pitcher-team-label" id="home-pitcher-team-label">HOME</div>
+                <div class="pitcher-list">
+                    <div class="pitcher-entry starter" id="home-starter-entry">
+                        <span class="pitcher-role">先発</span>
+                        <span class="pitcher-name" id="home-starter-name">-</span>
+                    </div>
+                    <div class="relief-section" id="home-relief-section">
+                        <div class="relief-header">リリーフ</div>
+                        <div class="relief-list" id="home-relay-container">
+                            <!-- リリーフ投手がJSで追加される -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
 
       </div>
 
       <!-- ==================== 右サイドバー：Home Lineup ==================== -->
       <div class="sidebar right-sidebar">
-        <div class="sidebar-header" id="sidebar-home-name">HOME</div>
+        <div class="sidebar-header" id="sidebar-home-name"></div>
         <div class="lineup-list" id="lineup-home-display">
           <!-- JSで生成 -->
         </div>
@@ -67,7 +114,7 @@
                 </thead>
                 <tbody>
                     <tr id="row-away">
-                        <td class="team-name-cell" id="team-name-away">Away</td>
+                        <td class="team-name-cell" id="team-name-away"></td>
                         <td id="score-away-1">0</td><td id="score-away-2">0</td><td id="score-away-3">0</td>
                         <td id="score-away-4">0</td><td id="score-away-5">0</td><td id="score-away-6">0</td>
                         <td id="score-away-7">0</td><td id="score-away-8">0</td><td id="score-away-9">0</td>
@@ -76,7 +123,7 @@
                         <td id="stats-away-e">0</td>
                     </tr>
                     <tr id="row-home">
-                        <td class="team-name-cell" id="team-name-home">Home</td>
+                        <td class="team-name-cell" id="team-name-home"></td>
                         <td id="score-home-1">0</td><td id="score-home-2">0</td><td id="score-home-3">0</td>
                         <td id="score-home-4">0</td><td id="score-home-5">0</td><td id="score-home-6">0</td>
                         <td id="score-home-7">0</td><td id="score-home-8">0</td><td id="score-home-9">0</td>
@@ -94,13 +141,13 @@
 
       <!-- ==================== 左下：打者詳細情報 ==================== -->
       <div class="player-display-bottom left" id="player-display-left">
-          <div class="player-role-label">BATTER</div>
-          <div class="player-name-large" id="batter-name-large">---</div>
+          <div class="player-role-label"></div>
+          <div class="player-name-large" id="batter-name-large"></div>
           <div class="player-stats-row" id="batter-stats-season" style="border-bottom: 1px solid rgba(255,255,255,0.2); margin-bottom: 5px; padding-bottom: 5px; font-size: 0.9em;">
-              <span class="stat-item"><span class="stat-label">AVG:</span> <span id="batter-avg">.---</span></span>
+              <span class="stat-item"><span class="stat-label">AVG:</span> <span id="batter-avg"></span></span>
               <span class="stat-item"><span class="stat-label">HR:</span> <span id="batter-hr">0</span></span>
               <span class="stat-item"><span class="stat-label">RBI:</span> <span id="batter-rbi">0</span></span>
-              <span class="stat-item"><span class="stat-label">OPS:</span> <span id="batter-ops">.---</span></span>
+              <span class="stat-item"><span class="stat-label">OPS:</span> <span id="batter-ops"></span></span>
           </div>
           <div class="player-stats-row" id="batter-stats-today">
               <!-- 当日の打席結果を表示（例：遊ゴロ 左安 三振） -->
@@ -109,42 +156,11 @@
 
       <!-- ==================== 右下:投手詳細情報 ==================== -->
       <div class="player-display-bottom right" id="player-display-right">
-          <!-- BSO & Runner (Moved here) -->
-          <div class="pitcher-addon-stats">
-            <div class="bso-center">
-              <div class="count-row">
-                <span class="count-label b">B</span>
-                <div class="count-dots" id="ball-dots">
-                  <span class="dot"></span><span class="dot"></span><span class="dot"></span>
-                </div>
-              </div>
-              <div class="count-row">
-                <span class="count-label s">S</span>
-                <div class="count-dots" id="strike-dots">
-                  <span class="dot"></span><span class="dot"></span>
-                </div>
-              </div>
-              <div class="count-row">
-                <span class="count-label o">O</span>
-                <div class="count-dots" id="out-dots">
-                  <span class="dot"></span><span class="dot"></span>
-                </div>
-              </div>
-            </div>
-
-            <div class="runner-diamond-center">
-              <div class="base-center first" id="runner-first"></div>
-              <div class="base-center second" id="runner-second"></div>
-              <div class="base-center third" id="runner-third"></div>
-              <div class="home-plate"></div>
-            </div>
-          </div>
-
-          <div class="player-role-label">PITCHER</div>
-          <div class="player-name-large" id="pitcher-name-large">---</div>
+          <div class="player-role-label"></div>
+          <div class="player-name-large" id="pitcher-name-large"></div>
           <div class="player-stats-row" id="pitcher-stats-season" style="border-bottom: 1px solid rgba(255,255,255,0.2); margin-bottom: 5px; padding-bottom: 5px; font-size: 0.9em;">
-              <span class="stat-item"><span class="stat-label">ERA:</span> <span id="pitcher-era">-.--</span></span>
-              <span class="stat-item"><span class="stat-label" title="Strikeouts per 9 innings">K/9:</span> <span id="pitcher-k9">-.--</span></span>
+              <span class="stat-item"><span class="stat-label">ERA:</span> <span id="pitcher-era"></span></span>
+              <span class="stat-item"><span class="stat-label" title="Strikeouts per 9 innings">K/9:</span> <span id="pitcher-k9"></span></span>
           </div>
           <div class="player-stats-row" id="pitcher-stats-today">
               <!-- 投手の当日成績(イニング、三振、失点) -->
@@ -154,6 +170,38 @@
               <span class="stat-item"><span class="stat-label">R:</span> <span id="pitcher-runs">0</span></span>
           </div>
       </div>
+
+      <!-- ==================== 中央下部：BSO & ランナー ==================== -->
+      <div class="bso-runner-center">
+          <div class="bso-display">
+              <div class="count-row">
+                  <span class="count-label b">B</span>
+                  <div class="count-dots" id="ball-dots">
+                      <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+                  </div>
+              </div>
+              <div class="count-row">
+                  <span class="count-label s">S</span>
+                  <div class="count-dots" id="strike-dots">
+                      <span class="dot"></span><span class="dot"></span>
+                  </div>
+              </div>
+              <div class="count-row">
+                  <span class="count-label o">O</span>
+                  <div class="count-dots" id="out-dots">
+                      <span class="dot"></span><span class="dot"></span>
+                  </div>
+              </div>
+          </div>
+
+          <div class="runner-diamond">
+              <div class="base-indicator first" id="runner-first"></div>
+              <div class="base-indicator second" id="runner-second"></div>
+              <div class="base-indicator third" id="runner-third"></div>
+              <div class="home-plate-indicator"></div>
+          </div>
+      </div>
+
 
       <!-- ==================== 中央：結果アニメーションオーバーレイ ==================== -->
       <div id="result-overlay" class="result-overlay">
@@ -191,7 +239,7 @@
           const simpleWindow = window.open(
             'admin-simple.html',
             'simplePanel',
-            'width=800,height=600,left=50,top=50,resizable=yes,scrollbars=yes'
+            'width=800,height=630,left=50,top=50,resizable=yes,scrollbars=yes'
           );
           
           if (simpleWindow) {
@@ -199,36 +247,7 @@
           } else {
             console.error('簡易操作パネルがブロックされました');
           }
-          
-            // 2. 試合管理パネルを開く（600x600、右側に配置）
-          setTimeout(function() {
-            const controlWindow = window.open(
-              'admin-control.html',
-              'controlPanel',
-              'width=600,height=600,left=870,top=50,resizable=yes,scrollbars=yes'
-            );
-            
-            if (controlWindow) {
-              console.log('試合管理パネルを開きました');
-            } else {
-              console.error('試合管理パネルがブロックされました');
-            }
-          }, 500); // 500ms遅延
-
-          // 3. 打順管理パネルを開く（900x600、右下に配置）
-          setTimeout(function() {
-            const lineupWindow = window.open(
-              'admin-lineup.html',
-              'lineupPanel',
-              'width=900,height=600,left=150,top=400,resizable=yes,scrollbars=yes'
-            );
-
-            if (lineupWindow) {
-                console.log('打順管理パネルを開きました');
-            } else {
-                console.error('打順管理パネルがブロックされました');
-            }
-          }, 1000); // 1000ms遅延
+           // Other panels are now integrated into admin-simple.html
           
         } catch (error) {
           console.error('ポップアップを開く際にエラーが発生しました:', error);

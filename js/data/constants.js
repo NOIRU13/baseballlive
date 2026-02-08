@@ -4,8 +4,8 @@
 
 export const DEFAULT_STATE = {
     teams: {
-        home: '\u30DB\u30FC\u30E0',
-        away: '\u30A2\u30A6\u30A7\u30A4'
+        home: '',
+        away: ''
     },
     teamShortNames: {
         home: '',
@@ -42,8 +42,8 @@ export const DEFAULT_STATE = {
     },
     // 守備位置データ
     positions: {
-        home: ['投', '捕', '一', '二', '三', '遊', '左', '中', '右'],
-        away: ['投', '捕', '一', '二', '三', '遊', '左', '中', '右']
+        home: ['', '', '', '', '', '', '', '', ''],
+        away: ['', '', '', '', '', '', '', '', '']
     },
     // 現在の打順位置（0-8）
     currentBatter: {
@@ -72,7 +72,19 @@ export const DEFAULT_STATE = {
     pitcherStats: {
         home: { innings: 0, strikeouts: 0, walks: 0, runs: 0, pitchCount: 0, outs: 0, runsAtStart: 0 },
         away: { innings: 0, strikeouts: 0, walks: 0, runs: 0, pitchCount: 0, outs: 0, runsAtStart: 0 }
-    }
+    },
+    // 先発投手
+    startingPitcher: {
+        home: '',
+        away: ''
+    },
+    // 投手交代履歴（先発以外のリリーフ投手リスト）
+    pitcherHistory: {
+        home: [],
+        away: []
+    },
+    // 得点ログ（例: "1回裏 佐藤輝明 HR①"）
+    scoreLogs: []
 };
 
 // 打席結果のラベルマッピング

@@ -3,407 +3,482 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>簡易操作パネル - Baseball Live</title>
+    <title>管理パネル - Baseball Live</title>
     <link rel="stylesheet" href="style.css" />
-    <style>
-      /* 小ウィンドウ専用スタイル（800x600に最適化・横並べレイアウト） */
-      body.simple-mode {
-        margin: 0;
-        padding: 8px;
-        background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
-        font-family: 'Noto Sans JP', sans-serif;
-        overflow-y: auto;
-        max-width: 800px;
-        max-height: 600px;
-      }
-      
-      .simple-panel {
-        background: rgba(255, 255, 255, 0.05);
-        border-radius: 10px;
-        padding: 10px;
-        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-      }
-      
-      .simple-title {
-        color: #ffd700;
-        font-size: 16px;
-        font-weight: bold;
-        text-align: center;
-        margin-bottom: 10px;
-        text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
-      }
-      
-      /* 横並べレイアウト用のコンテナ */
-      .simple-grid {
-        display: grid;
-        grid-template-columns: 1fr 1fr 1fr;
-        gap: 10px;
-        margin-bottom: 10px;
-      }
-      
-      .simple-section {
-        background: rgba(255, 255, 255, 0.03);
-        border-radius: 6px;
-        padding: 8px;
-        border: 1px solid rgba(255, 215, 0, 0.2);
-      }
-      
-      .simple-section h3 {
-        color: #ffd700;
-        font-size: 13px;
-        margin: 0 0 8px 0;
-        font-weight: 600;
-        text-align: center;
-      }
-      
-      .count-controls {
-        display: flex;
-        flex-direction: column;
-        gap: 6px;
-      }
-      
-      .control-group {
-        display: flex;
-        flex-direction: column;
-        gap: 4px;
-      }
-      
-      .control-label {
-        color: #fff;
-        font-size: 11px;
-        font-weight: 500;
-        text-align: center;
-      }
-      
-      .btn-group {
-        display: flex;
-        gap: 4px;
-        justify-content: center;
-      }
-      
-      .btn {
-        padding: 6px 10px;
-        border: none;
-        border-radius: 5px;
-        font-size: 11px;
-        font-weight: 600;
-        cursor: pointer;
-        transition: all 0.2s;
-        color: #fff;
-        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
-      }
-      
-      .btn-ball {
-        background: linear-gradient(135deg, #27ae60, #229954);
-      }
-      
-      .btn-ball:hover {
-        background: linear-gradient(135deg, #229954, #1e8449);
-        transform: translateY(-1px);
-      }
-      
-      .btn-strike {
-        background: linear-gradient(135deg, #e74c3c, #c0392b);
-      }
-      
-      .btn-strike:hover {
-        background: linear-gradient(135deg, #c0392b, #a93226);
-        transform: translateY(-1px);
-      }
-      
-      .btn-out {
-        background: linear-gradient(135deg, #95a5a6, #7f8c8d);
-      }
-      
-      .btn-out:hover {
-        background: linear-gradient(135deg, #7f8c8d, #707b7c);
-        transform: translateY(-1px);
-      }
-      
-      .btn-reset {
-        background: linear-gradient(135deg, #34495e, #2c3e50);
-        font-size: 9px;
-        padding: 4px 8px;
-      }
-      
-      .btn-reset:hover {
-        background: linear-gradient(135deg, #2c3e50, #1c2833);
-      }
-      
-      .runner-controls-simple {
-        display: flex;
-        justify-content: center;
-        margin-bottom: 6px;
-      }
-      
-      .diamond-simple {
-        position: relative;
-        width: 90px;
-        height: 90px;
-        transform: rotate(-45deg);
-        margin: 10px auto;
-      }
-      
-      .base-btn {
-        position: absolute;
-        width: 26px;
-        height: 26px;
-        background: rgba(255, 255, 255, 0.2);
-        border: 2px solid rgba(255, 215, 0, 0.4);
-        border-radius: 4px;
-        cursor: pointer;
-        transition: all 0.3s;
-      }
-      
-      .base-btn.active {
-        background: linear-gradient(135deg, #ffd700, #ffed4e);
-        border-color: #ffd700;
-        box-shadow: 0 0 20px rgba(255, 215, 0, 0.8);
-      }
-      
-      .base-btn.first {
-        bottom: 0;
-        right: 0;
-      }
-      
-      .base-btn.second {
-        top: 0;
-        right: 0;
-      }
-      
-      .base-btn.third {
-        top: 0;
-        left: 0;
-      }
-      
-      .result-buttons {
-        display: flex;
-        flex-direction: column;
-        gap: 5px;
-      }
-      
-      .result-row {
-        display: flex;
-        flex-direction: column;
-        gap: 3px;
-      }
-      
-      .result-category {
-        color: #ffd700;
-        font-size: 10px;
-        font-weight: 600;
-        text-align: center;
-      }
-      
-      .btn-result {
-        flex: 1;
-        padding: 5px;
-        font-size: 10px;
-      }
-      
-      .btn-hit {
-        background: linear-gradient(135deg, #3498db, #2980b9);
-      }
-      
-      .btn-hit:hover {
-        background: linear-gradient(135deg, #2980b9, #21618c);
-        transform: translateY(-1px);
-      }
-      
-      .btn-homerun {
-        background: linear-gradient(135deg, #e74c3c, #c0392b);
-      }
-      
-      .btn-homerun:hover {
-        background: linear-gradient(135deg, #c0392b, #a93226);
-        transform: translateY(-1px);
-      }
-      
-      .btn-walk {
-        background: linear-gradient(135deg, #f39c12, #d68910);
-      }
-      
-      .btn-walk:hover {
-        background: linear-gradient(135deg, #d68910, #b9770e);
-        transform: translateY(-1px);
-      }
-      
-      .btn-out-result {
-        background: linear-gradient(135deg, #95a5a6, #7f8c8d);
-      }
-      
-      .btn-out-result:hover {
-        background: linear-gradient(135deg, #7f8c8d, #707b7c);
-        transform: translateY(-1px);
-      }
-      
-      .btn-other {
-        background: linear-gradient(135deg, #9b59b6, #8e44ad);
-      }
-      
-      .btn-other:hover {
-        background: linear-gradient(135deg, #8e44ad, #7d3c98);
-        transform: translateY(-1px);
-      }
-      
-      .btn-full {
-        width: 100%;
-        margin-top: 5px;
-      }
-      
-      .btn-warning {
-        background: linear-gradient(135deg, #e67e22, #d35400);
-      }
-      
-      .btn-warning:hover {
-        background: linear-gradient(135deg, #d35400, #ba4a00);
-      }
-      
-      .current-info {
-        background: rgba(255, 215, 0, 0.1);
-        border: 1px solid rgba(255, 215, 0, 0.3);
-        border-radius: 5px;
-        padding: 6px;
-        margin-bottom: 8px;
-        text-align: center;
-      }
-      
-      .current-info-label {
-        color: #ffd700;
-        font-size: 10px;
-        margin-bottom: 3px;
-      }
-      
-      .current-info-value {
-        color: #fff;
-        font-size: 14px;
-        font-weight: bold;
-      }
-    </style>
+    <link rel="stylesheet" href="css/admin.css" />
   </head>
-  <body class="admin-mode simple-mode">
-    <div class="simple-panel">
-      <h1 class="simple-title">⚾ 簡易操作パネル</h1>
-      
-      <!-- リンクセクション -->
-      <section class="control-section link-section" style="display: flex; gap: 6px; margin-bottom: 10px;">
-        <a href="index.html" target="_blank" class="btn btn-link" style="flex: 1; padding: 6px; font-size: 10px; text-decoration: none; display: block; text-align: center; background: linear-gradient(135deg, #3498db, #2980b9);">📺 スコアボード</a>
-        <a href="admin-control.html" target="_blank" class="btn btn-link" style="flex: 1; padding: 6px; font-size: 10px; text-decoration: none; display: block; text-align: center; background: linear-gradient(135deg, #3498db, #2980b9);">⚙️ 試合管理</a>
-        <a href="admin-lineup.html" target="_blank" class="btn btn-link" style="flex: 1; padding: 6px; font-size: 10px; text-decoration: none; display: block; text-align: center; background: linear-gradient(135deg, #3498db, #2980b9);">📋 打順管理</a>
-        <a href="admin-db.html" target="_blank" class="btn btn-link" style="flex: 1; padding: 6px; font-size: 10px; text-decoration: none; display: block; text-align: center; background: linear-gradient(135deg, #3498db, #2980b9);">🗄️ DB管理</a>
-      </section>
-      
-      <!-- 現在の状況表示 -->
-      <div class="current-info">
-        <div class="current-info-label">現在の打者</div>
-        <div class="current-info-value" id="current-batter-name">---</div>
-      </div>
-      
-      <!-- 横並べグリッドレイアウト -->
-      <div class="simple-grid">
-        <!-- カウント操作 -->
-        <section class="simple-section">
-          <h3>カウント</h3>
-          <div class="count-controls">
-            <div class="control-group">
-              <span class="control-label">ボール</span>
-              <div class="btn-group">
-                <button id="btn-ball" class="btn btn-ball">B +</button>
-                <button id="btn-ball-reset" class="btn btn-reset">リセット</button>
-              </div>
-            </div>
-            <div class="control-group">
-              <span class="control-label">ストライク</span>
-              <div class="btn-group">
-                <button id="btn-strike" class="btn btn-strike">S +</button>
-                <button id="btn-strike-reset" class="btn btn-reset">リセット</button>
-              </div>
-            </div>
-            <div class="control-group">
-              <span class="control-label">アウト</span>
-              <div class="btn-group">
-                <button id="btn-out" class="btn btn-out">O +</button>
-                <button id="btn-out-reset" class="btn btn-reset">リセット</button>
-              </div>
-            </div>
-          </div>
-          <button id="btn-count-reset" class="btn btn-full btn-warning">
-            カウントリセット
-          </button>
-        </section>
-        
-        <!-- ランナー操作 -->
-        <section class="simple-section">
-          <h3>ランナー</h3>
-          <div class="runner-controls-simple">
-            <div class="diamond-simple">
-              <button id="btn-runner-2" class="base-btn second" title="2塁"></button>
-              <button id="btn-runner-3" class="base-btn third" title="3塁"></button>
-              <button id="btn-runner-1" class="base-btn first" title="1塁"></button>
-            </div>
-          </div>
-          <button id="btn-runner-clear" class="btn btn-full btn-warning">
-            ランナークリア
-          </button>
-        </section>
-        
-        <!-- 打席結果入力（上半分） -->
-        <section class="simple-section">
-          <h3>打席結果 (1/2)</h3>
-          <div class="result-buttons">
-            <div class="result-row">
-              <span class="result-category">安打</span>
-              <div class="btn-group">
-                <button data-result="single" class="btn btn-result btn-hit">単打</button>
-                <button data-result="double" class="btn btn-result btn-hit">二塁打</button>
-              </div>
-              <div class="btn-group">
-                <button data-result="triple" class="btn btn-result btn-hit">三塁打</button>
-                <button data-result="homerun" class="btn btn-result btn-homerun">本塁打</button>
-              </div>
-            </div>
-            <div class="result-row">
-              <span class="result-category">出塁</span>
-              <div class="btn-group">
-                <button data-result="walk" class="btn btn-result btn-walk">四球</button>
-                <button data-result="hbp" class="btn btn-result btn-walk">死球</button>
-              </div>
-              <div class="btn-group">
-                <button data-result="error" class="btn btn-result btn-other">エラー</button>
-              </div>
-            </div>
-          </div>
-        </section>
-      </div>
-      
-      <!-- 打席結果入力（下半分） - フルワイド -->
-      <section class="simple-section">
-        <h3>打席結果 (2/2)</h3>
-        <div class="result-buttons">
-          <div class="result-row">
-            <span class="result-category">凡退</span>
-            <div class="btn-group">
-              <button data-result="strikeout" class="btn btn-result btn-out-result">三振</button>
-              <button data-result="groundout" class="btn btn-result btn-out-result">ゴロ</button>
-              <button data-result="flyout" class="btn btn-result btn-out-result">フライ</button>
-              <button data-result="lineout" class="btn btn-result btn-out-result">ライナー</button>
-            </div>
-          </div>
-          <div class="result-row">
-            <span class="result-category">その他</span>
-            <div class="btn-group">
-              <button data-result="sacrifice" class="btn btn-result btn-other">犠打</button>
-              <button data-result="fc" class="btn btn-result btn-other">FC</button>
-              <button data-result="dp" class="btn btn-result btn-out-result">併殺</button>
-            </div>
-          </div>
+  <body class="admin-mode">
+    <div class="control-panel">
+      <!-- Admin Header with Tabs -->
+      <div class="admin-header">
+        <h1 class="panel-title">⚾ 管理パネル</h1>
+        <div class="admin-tabs">
+            <button class="tab-btn active" data-tab="simple">簡易操作</button>
+            <button class="tab-btn" data-tab="lineup">オーダー管理</button>
+            <button class="tab-btn" data-tab="db">DB管理</button>
+            <button class="tab-btn" data-tab="control">試合管理</button>
         </div>
-        <button id="btn-undo-result" class="btn btn-full btn-warning">
-          直前の結果を取り消す
-        </button>
-      </section>
+      </div>
+
+      <!-- ==================== Tab: Simple (簡易操作) ==================== -->
+      <div id="tab-simple" class="tab-content active">
+          <!-- 現在の状況表示 -->
+          <div class="current-info" style="text-align:center; margin-bottom:10px; background:rgba(255,215,0,0.1); padding:5px; border-radius:4px;">
+            <div class="current-info-label" style="font-size:10px; color:#ffd700;">現在の打者</div>
+            <div class="current-info-value" id="current-batter-name" style="font-weight:bold;">---</div>
+          </div>
+          
+          <div class="simple-grid">
+            <!-- カウント操作 -->
+            <section class="simple-section">
+              <h3>カウント</h3>
+              <div class="count-controls">
+                <div class="control-group">
+                  <span class="control-label">ボール</span>
+                  <div class="btn-group">
+                    <button id="btn-ball" class="btn btn-ball">B +</button>
+                    <button id="btn-ball-reset" class="btn btn-reset">Reset</button>
+                  </div>
+                </div>
+                <div class="control-group">
+                  <span class="control-label">ストライク</span>
+                  <div class="btn-group">
+                    <button id="btn-strike" class="btn btn-strike">S +</button>
+                    <button id="btn-strike-reset" class="btn btn-reset">Reset</button>
+                  </div>
+                </div>
+                <div class="control-group">
+                  <span class="control-label">アウト</span>
+                  <div class="btn-group">
+                    <button id="btn-out" class="btn btn-out">O +</button>
+                    <button id="btn-out-reset" class="btn btn-reset">Reset</button>
+                  </div>
+                </div>
+              </div>
+              <button id="btn-count-reset" class="btn btn-full btn-warning" style="margin-top:10px; width:100%;">
+                カウントリセット
+              </button>
+            </section>
+            
+            <!-- ランナー操作 -->
+            <section class="simple-section">
+              <h3>ランナー</h3>
+              <div class="runner-controls-simple">
+                <div class="diamond-simple">
+                  <button id="btn-runner-2" class="base-btn second" title="2塁"></button>
+                  <button id="btn-runner-3" class="base-btn third" title="3塁"></button>
+                  <button id="btn-runner-1" class="base-btn first" title="1塁"></button>
+                </div>
+              </div>
+              <button id="btn-runner-clear" class="btn btn-full btn-warning" style="width:100%;">
+                ランナークリア
+              </button>
+            </section>
+            
+            <!-- 打席結果入力（安打・出塁） -->
+            <section class="simple-section">
+              <h3>打席結果 (出塁)</h3>
+              <div class="result-buttons">
+                <div class="result-row">
+                  <span class="result-category">安打</span>
+                  <button data-result="single" class="btn btn-result btn-hit">単打</button>
+                  <button data-result="double" class="btn btn-result btn-hit">二塁打</button>
+                  <button data-result="triple" class="btn btn-result btn-hit">三塁打</button>
+                  <button data-result="homerun" class="btn btn-result btn-homerun">本塁打</button>
+                </div>
+                <div class="result-row">
+                  <span class="result-category">四死球</span>
+                  <button data-result="walk" class="btn btn-result btn-walk">四球</button>
+                  <button data-result="hbp" class="btn btn-result btn-walk">死球</button>
+                  <button data-result="error" class="btn btn-result btn-other">エラー</button>
+                </div>
+              </div>
+            </section>
+            
+             <!-- 打席結果入力（アウト・他） -->
+             <section class="simple-section">
+                <h3>打席結果 (凡退)</h3>
+                <div class="result-buttons">
+                  <div class="result-row">
+                    <span class="result-category">凡退</span>
+                    <button data-result="strikeout" class="btn btn-result btn-out-result">三振</button>
+                    <button data-result="groundout" class="btn btn-result btn-out-result">ゴロ</button>
+                    <button data-result="flyout" class="btn btn-result btn-out-result">フライ</button>
+                    <button data-result="lineout" class="btn btn-result btn-out-result">ライナー</button>
+                  </div>
+                  <div class="result-row">
+                    <span class="result-category">他</span>
+                    <button data-result="sacrifice" class="btn btn-result btn-other">犠打</button>
+                    <button data-result="fc" class="btn btn-result btn-other">FC</button>
+                    <button data-result="dp" class="btn btn-result btn-out-result">併殺</button>
+                  </div>
+                </div>
+                <button id="btn-undo-result" class="btn btn-full btn-warning" style="width:100%;">
+                  直前の結果を取り消す
+                </button>
+              </section>
+          </div>
+      </div>
+
+      <!-- ==================== Tab: Lineup (オーダー管理) ==================== -->
+      <div id="tab-lineup" class="tab-content">
+          <section class="team-select-section">
+            <h2>チーム選択</h2>
+            <div class="team-inputs">
+              <div class="input-group">
+                <label for="away-team-select">先攻チーム</label>
+                <select id="away-team-select" class="team-select" style="width:100%; padding:5px;">
+                  <option value="">チームを選択...</option>
+                </select>
+              </div>
+              <div class="input-group">
+                <label for="home-team-select">後攻チーム</label>
+                <select id="home-team-select" class="team-select" style="width:100%; padding:5px;">
+                  <option value="">チームを選択...</option>
+                </select>
+              </div>
+            </div>
+            
+             <div style="text-align: center; margin-top:10px;">
+                <button id="btn-save-lineup" class="btn btn-success">保存</button>
+                <span id="save-status" style="margin-left: 12px; font-size: 14px; color: #2ecc71; opacity: 0; transition: opacity 0.3s;"></span>
+              </div>
+              
+              <!-- スタメンテンプレート機能 -->
+              <div class="template-section" style="margin-top: 15px; padding: 10px; background: rgba(255,255,255,0.05); border-radius: 8px;">
+                <h3 style="margin: 0 0 10px 0; font-size: 14px; color: #ffd700;">📋 スタメンテンプレート</h3>
+                <div class="template-controls" style="display: flex; gap: 10px; flex-wrap: wrap; justify-content: center;">
+                  <div class="template-team" style="flex: 1; min-width: 200px; padding: 8px; background: rgba(0,0,0,0.2); border-radius: 6px;">
+                    <span style="font-size: 12px; color: #aaa;">先攻チーム</span>
+                    <div style="margin-top: 5px; display: flex; gap: 5px; flex-wrap: wrap;">
+                      <button id="btn-save-template-away" class="btn btn-template" style="font-size: 11px; padding: 4px 8px; background: #3498db;">テンプレ保存</button>
+                      <button id="btn-load-template-away" class="btn btn-template" style="font-size: 11px; padding: 4px 8px; background: #27ae60;">テンプレ読込</button>
+                    </div>
+                  </div>
+                  <div class="template-team" style="flex: 1; min-width: 200px; padding: 8px; background: rgba(0,0,0,0.2); border-radius: 6px;">
+                    <span style="font-size: 12px; color: #aaa;">後攻チーム</span>
+                    <div style="margin-top: 5px; display: flex; gap: 5px; flex-wrap: wrap;">
+                      <button id="btn-save-template-home" class="btn btn-template" style="font-size: 11px; padding: 4px 8px; background: #3498db;">テンプレ保存</button>
+                      <button id="btn-load-template-home" class="btn btn-template" style="font-size: 11px; padding: 4px 8px; background: #27ae60;">テンプレ読込</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+          </section>
+
+          <style>
+             .btn-sub-player {
+                 padding: 2px 6px; font-size: 10px; background: #e74c3c; color: #fff; border: none; border-radius: 3px; cursor: pointer; margin-left: 5px;
+             }
+             .btn-sub-player:hover { background: #c0392b; }
+          </style>
+
+          <div class="lineups-row">
+            <!-- 先攻チーム（左側） -->
+            <section class="lineup-column section">
+              <h3 class="lineup-team-title">先攻（ビジター）</h3>
+              <div id="lineup-input-away" class="lineup-input-panel">
+                 <!-- JS will generate content -->
+              </div>
+            </section>
+            
+            <!-- 後攻チーム（右側） -->
+            <section class="lineup-column section">
+              <h3 class="lineup-team-title">後攻（ホーム）</h3>
+              <div id="lineup-input-home" class="lineup-input-panel">
+                <!-- JS will generate content -->
+              </div>
+            </section>
+          </div>
+      </div>
+
+      <!-- ==================== Tab: DB (DB管理) ==================== -->
+      <div id="tab-db" class="tab-content">
+           <div class="db-tabs">
+            <button class="db-tab-btn active" onclick="showDbTab('teams')">チーム管理</button>
+            <button class="db-tab-btn" onclick="showDbTab('players')">選手管理</button>
+            <button class="db-tab-btn" onclick="showDbTab('stats')">成績管理</button>
+          </div>
+
+          <!-- チーム管理タブ -->
+          <div id="teams-tab" class="db-tab-content active">
+            <div class="section">
+              <h2>チーム登録</h2>
+              <form id="team-form">
+                <input type="hidden" id="team-id">
+                <div class="flex-row">
+                    <div class="form-group flex-1">
+                      <label for="team-name">チーム名</label>
+                      <input type="text" id="team-name" required placeholder="例: Hanshin Tigers">
+                    </div>
+                    <div class="form-group flex-1">
+                      <label for="team-short-name">略称</label>
+                      <input type="text" id="team-short-name" required placeholder="例: 阪神">
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-primary">保存</button>
+                <button type="button" onclick="resetTeamForm()" class="btn" style="background:transparent; border:1px solid #aaa;">キャンセル</button>
+              </form>
+            </div>
+
+            <div class="section">
+              <h2>登録済みチーム一覧</h2>
+              <table id="teams-table">
+                <thead><tr><th>ID</th><th>チーム名</th><th>略称</th><th>操作</th></tr></thead>
+                <tbody><!-- JSで挿入 --></tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- 選手管理タブ -->
+          <div id="players-tab" class="db-tab-content">
+            <div class="section">
+              <h2>選手登録</h2>
+              <form id="player-form">
+                <input type="hidden" id="player-id">
+                <div class="form-group">
+                    <label for="player-team-select">所属チーム</label>
+                    <select id="player-team-select" required></select>
+                </div>
+                <div class="flex-row">
+                    <div class="form-group flex-1">
+                      <label for="player-name">選手名</label>
+                      <input type="text" id="player-name" required placeholder="例: 佐藤 輝明">
+                    </div>
+                    <div class="form-group" style="width: 80px;">
+                      <label for="player-number">背番号</label>
+                      <input type="number" id="player-number" placeholder="8">
+                    </div>
+                </div>
+                <div class="flex-row">
+                     <div class="form-group flex-1">
+                      <label for="player-position">ポジション</label>
+                      <select id="player-position">
+                          <option value="P">P (投手)</option>
+                          <option value="C">C (捕手)</option>
+                          <option value="IF">IF (内野手)</option>
+                          <option value="OF">OF (外野手)</option>
+                      </select>
+                    </div>
+                    <div class="form-group flex-1">
+                      <label for="player-hand">投打</label>
+                      <input type="text" id="player-hand" placeholder="例: 右投左打">
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-primary">保存</button>
+                <button type="button" onclick="resetPlayerForm()" class="btn" style="background:transparent; border:1px solid #aaa;">キャンセル</button>
+              </form>
+            </div>
+
+            <div class="section">
+              <h2>選手一覧</h2>
+              <div class="form-group">
+                  <label>チームでフィルタ</label>
+                  <select id="filter-team-select" onchange="loadPlayers()">
+                      <option value="">全チーム</option>
+                  </select>
+              </div>
+              <div style="overflow-x:auto;">
+                <table id="players-table">
+                    <thead><tr><th>#</th><th>選手名</th><th>守</th><th>投打</th><th>チーム</th><th>操作</th></tr></thead>
+                    <tbody><!-- JSで挿入 --></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- 成績管理タブ -->
+          <div id="stats-tab" class="db-tab-content">
+             <div class="section">
+                 <h2>CSVインポート</h2>
+                 <div class="form-group">
+                     <label>データの種類</label>
+                     <select id="import-type">
+                         <option value="batting">打撃成績</option>
+                         <option value="pitching">投手成績</option>
+                         <option value="players">選手情報</option>
+                     </select>
+                 </div>
+                 <div class="form-group">
+                     <input type="file" id="csv-file" accept=".csv">
+                 </div>
+                 <button onclick="uploadCsv()" class="btn btn-primary">インポート</button>
+                 <div id="upload-status" style="margin-top: 5px; font-size:12px;"></div>
+             </div>
+             
+             <div class="section">
+                 <h2>CSV エクスポート</h2>
+                 <div class="flex-row">
+                     <button onclick="exportCsv('batting')" class="btn btn-primary" style="font-size:10px;">打撃成績DL</button>
+                     <button onclick="exportCsv('pitching')" class="btn btn-primary" style="font-size:10px;">投手成績DL</button>
+                 </div>
+             </div>
+
+             <div class="section">
+                  <h2>チーム別成績リセット</h2>
+                  <div class="form-group flex-row" style="align-items: center;">
+                    <select id="stats-team-filter" style="width: auto; min-width: 150px; margin-right: 5px;">
+                        <option value="">（チーム選択）</option>
+                    </select>
+                    <button id="btn-reset-team-stats" class="btn btn-danger" onclick="resetTeamStats()" disabled>一括削除</button>
+                  </div>
+             </div>
+
+            <div class="section">
+                <h2>成績詳細</h2>
+                <div class="db-tabs" style="margin-bottom: 5px;">
+                    <button class="db-tab-btn active" id="btn-stats-batting" onclick="switchStatsTab('batting')">打撃</button>
+                    <button class="db-tab-btn" id="btn-stats-pitching" onclick="switchStatsTab('pitching')">投手</button>
+                </div>
+                
+                 <!-- Manual Stats Form (Collapsible or just visible) -->
+                 <div style="margin-bottom:15px; border:1px dashed #555; padding:5px;">
+                     <h4 style="margin:0 0 5px 0; color:#aaa; font-size:12px;">手動編集・登録</h4>
+                      <form id="stats-form">
+                        <input type="hidden" id="stats-id">
+                        <input type="hidden" id="stats-type" value="batting">
+                        <div class="flex-row">
+                            <div class="form-group flex-1">
+                                <label>チーム</label>
+                                <select id="stats-form-team-select" onchange="loadPlayersForStats(this.value)" required></select>
+                            </div>
+                            <div class="form-group flex-1">
+                                <label>選手</label>
+                                <select id="stats-player-select" required></select>
+                            </div>
+                             <div class="form-group" style="width:60px;">
+                                <label>年度</label>
+                                <input type="number" id="stats-season" value="2026" required>
+                            </div>
+                        </div>
+                        
+                        <!-- Batting Fields -->
+                        <div id="batting-fields">
+                            <div class="flex-row">
+                                <input type="text" id="stats-batting-average" placeholder="打率" class="flex-1">
+                                <input type="number" id="stats-games-b" placeholder="試合" class="flex-1">
+                                <input type="number" id="stats-at-bats" placeholder="打数" class="flex-1">
+                                <input type="number" id="stats-hits" placeholder="安打" class="flex-1">
+                            </div>
+                            <div class="flex-row" style="margin-top:5px;">
+                                <input type="number" id="stats-home-runs" placeholder="HR" class="flex-1">
+                                <input type="number" id="stats-rbis" placeholder="打点" class="flex-1">
+                                <input type="text" id="stats-ops" placeholder="OPS" class="flex-1">
+                            </div>
+                        </div>
+                        <!-- Pitching Fields -->
+                        <div id="pitching-fields" style="display:none;">
+                             <div class="flex-row">
+                                <input type="text" id="stats-era" placeholder="防御率" class="flex-1">
+                                <input type="number" id="stats-games-p" placeholder="登板" class="flex-1">
+                                <input type="number" id="stats-wins" placeholder="勝" class="flex-1">
+                                <input type="number" id="stats-losses" placeholder="負" class="flex-1">
+                            </div>
+                            <div class="flex-row" style="margin-top:5px;">
+                                <input type="number" id="stats-saves" placeholder="S" class="flex-1">
+                                <input type="text" id="stats-innings" placeholder="回" class="flex-1">
+                                <input type="number" id="stats-strikeouts" placeholder="三振" class="flex-1">
+                            </div>
+                        </div>
+                        <div style="margin-top:5px; text-align:right;">
+                             <button type="submit" class="btn btn-primary" style="padding:4px 8px;">保存</button>
+                             <button type="button" onclick="resetStatsForm()" class="btn" style="padding:4px 8px; background:#555;">Clear</button>
+                        </div>
+                      </form>
+                 </div>
+
+                <div style="overflow-x: auto; max-height:300px;">
+                    <table id="stats-table">
+                        <thead><!-- JS --></thead>
+                        <tbody><!-- JS --></tbody>
+                    </table>
+                </div>
+            </div>
+          </div>
+      </div>
+
+      <!-- ==================== Tab: Control (試合管理) ==================== -->
+      <div id="tab-control" class="tab-content">
+           <div class="control-layout">
+            <div class="control-column">
+              <!-- イニング操作 -->
+              <section class="control-section">
+                <h2>イニング</h2>
+                <div class="inning-controls">
+                  <button id="btn-inning-prev" class="btn btn-reset">◀</button>
+                  <span class="inning-info" id="inning-info" style="font-weight:bold; font-size:16px; color:#ffd700;">1回 表</span>
+                  <button id="btn-inning-next" class="btn btn-reset">▶</button>
+                </div>
+              </section>
+              
+              <!-- 得点操作 -->
+              <section class="control-section">
+                <h2>得点</h2>
+                <div class="score-controls">
+                  <span class="team-label" id="scoring-team-label" style="color:#aaa;">攻撃チーム</span>
+                  <div class="btn-group">
+                    <button id="btn-score-minus" class="btn btn-reset">−</button>
+                    <span id="current-inning-score" class="current-score">0</span>
+                    <button id="btn-score-plus" class="btn btn-reset">＋</button>
+                  </div>
+                </div>
+              </section>
+              
+              <!-- R/H/E操作 -->
+              <section class="control-section">
+                <h2>Hits / Errors</h2>
+                <div class="rhe-controls">
+                  <div class="rhe-team-controls">
+                    <span class="team-label">先攻</span>
+                    <div class="btn-group">
+                      <button data-team="away" data-stat="h" class="btn btn-reset">H+</button>
+                      <button data-team="away" data-stat="h" data-action="minus" class="btn btn-reset">H−</button>
+                      <button data-team="away" data-stat="e" class="btn btn-reset">E+</button>
+                      <button data-team="away" data-stat="e" data-action="minus" class="btn btn-reset">E−</button>
+                    </div>
+                  </div>
+                  <div class="rhe-team-controls">
+                    <span class="team-label">後攻</span>
+                    <div class="btn-group">
+                      <button data-team="home" data-stat="h" class="btn btn-reset">H+</button>
+                      <button data-team="home" data-stat="h" data-action="minus" class="btn btn-reset">H−</button>
+                      <button data-team="home" data-stat="e" class="btn btn-reset">E+</button>
+                      <button data-team="home" data-stat="e" data-action="minus" class="btn btn-reset">E−</button>
+                    </div>
+                  </div>
+                </div>
+              </section>
+              
+              <!-- 打者操作 -->
+              <section class="control-section">
+                <h2>打者操作</h2>
+                <div class="at-bat-info">
+                  <div class="current-batter-info">
+                    <span class="batter-order" id="current-batter-order">1</span>
+                    <span class="batter-name" id="current-batter-name-control">---</span>
+                  </div>
+                  <div class="at-bat-label">現在の打者</div>
+                </div>
+                <div class="batter-nav">
+                  <button id="btn-prev-batter" class="btn btn-batter-nav">◀ 前</button>
+                  <button id="btn-next-batter" class="btn btn-batter-nav">次 ▶</button>
+                </div>
+              </section>
+              
+              <!-- リセット -->
+              <section class="control-section">
+                <button id="btn-reset-game" class="btn btn-full btn-danger">
+                  🔄 全リセット
+                </button>
+              </section>
+            </div>
+          </div>
+      </div>
+
     </div>
     
     <script type="module" src="js/app.js"></script>
+    <script src="js/admin-db.js"></script>
+    <script src="js/admin-tabs.js"></script>
   </body>
 </html>

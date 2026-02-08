@@ -628,9 +628,31 @@ window.loadStats = loadStats;
 window.switchStatsTab = switchStatsTab;
 window.resetTeamStats = resetTeamStats;
 
+// DB管理タブ内でのサブタブ切り替え (Teams/Players/Stats)
+window.showDbTab = function(tabName) {
+    // DBタブ内のコンテンツのみを対象にする
+    const dbContainer = document.getElementById('tab-db');
+    if (!dbContainer) return;
+
+    dbContainer.querySelectorAll('.db-tab-content').forEach(el => el.classList.remove('active'));
+    dbContainer.querySelectorAll('.db-tab-btn').forEach(el => el.classList.remove('active'));
+    
+    const targetContent = document.getElementById(tabName + '-tab');
+    if (targetContent) targetContent.classList.add('active');
+    
+    // ボタンのアクティブ化（簡易判定）
+    if(tabName === 'teams') document.querySelector('.db-tab-btn[onclick*="teams"]').classList.add('active');
+    if(tabName === 'players') document.querySelector('.db-tab-btn[onclick*="players"]').classList.add('active');
+    if(tabName === 'stats') {
+        document.querySelector('.db-tab-btn[onclick*="stats"]').classList.add('active');
+        switchStatsTab('batting');
+    }
+};
+
 // DOM読み込み完了時の追加処理
 document.addEventListener('DOMContentLoaded', () => {
     loadPlayersForStats();
     loadStatsTeams(); // 追加
-    document.getElementById('stats-form').addEventListener('submit', handleStatsSubmit);
+    const statsForm = document.getElementById('stats-form');
+    if (statsForm) statsForm.addEventListener('submit', handleStatsSubmit);
 });

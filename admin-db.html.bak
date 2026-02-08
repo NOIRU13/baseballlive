@@ -1,0 +1,468 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>DB管理 - Baseball Live</title>
+    <link rel="stylesheet" href="style.css" />
+    <style>
+      /* admin-db.html specific styles */
+      body.admin-db-mode {
+        background: #1a1a2e;
+        color: #fff;
+        font-family: 'Noto Sans JP', sans-serif;
+        padding: 20px;
+      }
+
+      .container {
+        max-width: 1000px;
+        margin: 0 auto;
+      }
+
+      header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        padding-bottom: 10px;
+      }
+
+      h1 {
+        font-size: 24px;
+        color: #ffd700;
+        margin: 0;
+      }
+
+      .tabs {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 20px;
+      }
+
+      .tab-btn {
+        background: rgba(255, 255, 255, 0.1);
+        border: none;
+        padding: 10px 20px;
+        color: #fff;
+        cursor: pointer;
+        border-radius: 5px;
+        font-weight: bold;
+      }
+
+      .tab-btn.active {
+        background: #ffd700;
+        color: #000;
+      }
+
+      .tab-content {
+        display: none;
+      }
+
+      .tab-content.active {
+        display: block;
+      }
+
+      .section {
+        background: rgba(255, 255, 255, 0.05);
+        padding: 20px;
+        border-radius: 10px;
+        margin-bottom: 20px;
+      }
+
+      .form-group {
+        margin-bottom: 15px;
+      }
+
+      label {
+        display: block;
+        margin-bottom: 5px;
+        font-size: 14px;
+        color: #ccc;
+      }
+
+      input, select {
+        width: 100%;
+        padding: 8px;
+        background: rgba(0, 0, 0, 0.3);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        color: #fff;
+        border-radius: 4px;
+        box-sizing: border-box;
+      }
+
+      button.primary-btn {
+        background: #27ae60;
+        color: #fff;
+        border: none;
+        padding: 8px 16px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-weight: bold;
+      }
+
+      button.primary-btn:hover {
+        background: #2ecc71;
+      }
+
+      button.danger-btn {
+        background: #c0392b;
+        color: #fff;
+        border: none;
+        padding: 4px 8px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 12px;
+      }
+      
+      button.edit-btn {
+        background: #f39c12;
+        color: #fff;
+        border: none;
+        padding: 4px 8px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 12px;
+        margin-right: 4px;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 10px;
+      }
+
+      th, td {
+        padding: 10px;
+        text-align: left;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      }
+
+      th {
+        color: #ffd700;
+        font-size: 14px;
+      }
+      
+      .flex-row {
+          display: flex;
+          gap: 10px;
+      }
+      
+      .flex-1 { flex: 1; }
+    </style>
+  </head>
+  <body class="admin-db-mode">
+    <div class="container">
+      <header>
+        <h1>⚾ データベース管理</h1>
+        <nav style="display: flex; gap: 10px;">
+          <a href="index.html" target="_blank" style="color: #fff; text-decoration: none; font-size: 14px; background: rgba(255,255,255,0.1); padding: 5px 10px; border-radius: 4px;">📺 スコアボード</a>
+          <a href="admin-control.html" target="_blank" style="color: #fff; text-decoration: none; font-size: 14px; background: rgba(255,255,255,0.1); padding: 5px 10px; border-radius: 4px;">⚙️ 試合管理</a>
+          <a href="admin-lineup.html" target="_blank" style="color: #fff; text-decoration: none; font-size: 14px; background: rgba(255,255,255,0.1); padding: 5px 10px; border-radius: 4px;">📋 打順管理</a>
+          <a href="admin-simple.html" target="_blank" style="color: #fff; text-decoration: none; font-size: 14px; background: rgba(255,255,255,0.1); padding: 5px 10px; border-radius: 4px;">🎮 簡易操作</a>
+        </nav>
+      </header>
+
+      <div class="tabs">
+        <button class="tab-btn active" onclick="showTab('teams')">チーム管理</button>
+        <button class="tab-btn" onclick="showTab('players')">選手管理</button>
+        <button class="tab-btn" onclick="showTab('stats')">成績管理</button>
+      </div>
+
+      <!-- チーム管理タブ -->
+      <div id="teams-tab" class="tab-content active">
+        <div class="section">
+          <h2>チーム登録</h2>
+          <form id="team-form">
+            <input type="hidden" id="team-id">
+            <div class="flex-row">
+                <div class="form-group flex-1">
+                  <label for="team-name">チーム名</label>
+                  <input type="text" id="team-name" required placeholder="例: Hanshin Tigers">
+                </div>
+                <div class="form-group flex-1">
+                  <label for="team-short-name">略称</label>
+                  <input type="text" id="team-short-name" required placeholder="例: 阪神">
+                </div>
+            </div>
+            <button type="submit" class="primary-btn">保存</button>
+            <button type="button" onclick="resetTeamForm()" style="background:transparent; border:1px solid #aaa; color:#aaa; padding:8px; border-radius:4px; margin-left:10px; cursor:pointer;">キャンセル</button>
+          </form>
+        </div>
+
+        <div class="section">
+          <h2>登録済みチーム一覧</h2>
+          <table id="teams-table">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>チーム名</th>
+                <th>略称</th>
+                <th>操作</th>
+              </tr>
+            </thead>
+            <tbody>
+              <!-- JSで挿入 -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- 選手管理タブ -->
+      <div id="players-tab" class="tab-content">
+        <div class="section">
+          <h2>選手登録</h2>
+          <form id="player-form">
+            <input type="hidden" id="player-id">
+            <div class="form-group">
+                <label for="player-team-select">所属チーム</label>
+                <select id="player-team-select" required>
+                    <!-- JSで選択肢挿入 -->
+                </select>
+            </div>
+            <div class="flex-row">
+                <div class="form-group flex-1">
+                  <label for="player-name">選手名</label>
+                  <input type="text" id="player-name" required placeholder="例: 佐藤 輝明">
+                </div>
+                <div class="form-group" style="width: 80px;">
+                  <label for="player-number">背番号</label>
+                  <input type="number" id="player-number" placeholder="8">
+                </div>
+            </div>
+            <div class="flex-row">
+                <div class="form-group flex-1">
+                  <label for="player-position">ポジション</label>
+                  <select id="player-position">
+                      <option value="P">P (投手)</option>
+                      <option value="C">C (捕手)</option>
+                      <option value="IF">IF (内野手)</option>
+                      <option value="OF">OF (外野手)</option>
+                  </select>
+                </div>
+                <div class="form-group flex-1">
+                  <label for="player-hand">投打</label>
+                  <input type="text" id="player-hand" placeholder="例: 右投左打">
+                </div>
+            </div>
+            <button type="submit" class="primary-btn">保存</button>
+            <button type="button" onclick="resetPlayerForm()" style="background:transparent; border:1px solid #aaa; color:#aaa; padding:8px; border-radius:4px; margin-left:10px; cursor:pointer;">キャンセル</button>
+          </form>
+        </div>
+
+        <div class="section">
+          <h2>登録済み選手一覧</h2>
+          <div class="form-group">
+              <label>チームでフィルタ</label>
+              <select id="filter-team-select" onchange="loadPlayers()">
+                  <option value="">全チーム</option>
+                  <!-- JSで選択肢挿入 -->
+              </select>
+          </div>
+          <table id="players-table">
+            <thead>
+              <tr>
+                <th>背番号</th>
+                <th>選手名</th>
+                <th>ポジション</th>
+                <th>投打</th>
+                <th>所属チーム</th>
+                <th>操作</th>
+              </tr>
+            </thead>
+            <tbody>
+              <!-- JSで挿入 -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- 成績管理タブ -->
+      <div id="stats-tab" class="tab-content">
+        <div class="section">
+            <h2>CSVインポート (Python Backend)</h2>
+            <div class="form-group">
+                <label>データの種類</label>
+                <select id="import-type">
+                    <option value="batting">打撃成績</option>
+                    <option value="pitching">投手成績</option>
+                    <option value="players">選手情報</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>CSVファイルを選択</label>
+                <input type="file" id="csv-file" accept=".csv">
+            </div>
+            <button onclick="uploadCsv()" class="primary-btn">インポート実行</button>
+            <div id="upload-status" style="margin-top: 10px;"></div>
+        </div>
+
+        <div class="section">
+            <h2>CSVエクスポート</h2>
+            <div class="flex-row">
+                <button onclick="exportCsv('batting')" class="primary-btn" style="background: #3498db;">打撃成績ダウンロード</button>
+                <button onclick="exportCsv('pitching')" class="primary-btn" style="background: #9b59b6;">投手成績ダウンロード</button>
+            </div>
+        </div>
+
+             <div class="section">
+                 <h2>チーム別成績リセット</h2>
+                 <div class="form-group flex-row" style="align-items: center;">
+                    <label style="margin-right: 10px;">対象チーム:</label>
+                    <select id="stats-team-filter" style="width: auto; min-width: 200px; margin-right: 10px;">
+                        <option value="">（選択してください）</option>
+                        <!-- JSで挿入 -->
+                    </select>
+                    <button id="btn-reset-team-stats" class="danger-btn" onclick="resetTeamStats()" disabled style="padding: 10px 20px; font-size: 14px;">チーム成績一括削除</button>
+                 </div>
+                 <p style="font-size: 12px; color: #aaa;">※選択したチームの全ての打撃・投手記録（現在選択中のタブに関わらず、両方削除するか確認します）が削除されます。</p>
+             </div>
+
+             <div class="section">
+                 <h2>成績データマニュアル登録・編集</h2>
+                 <form id="stats-form">
+                    <input type="hidden" id="stats-id">
+                    <input type="hidden" id="stats-type" value="batting"> <!-- batting or pitching -->
+                    
+                    <div class="form-group">
+                        <label for="stats-form-team-select">チーム</label>
+                        <select id="stats-form-team-select" onchange="loadPlayersForStats(this.value)" required>
+                            <option value="">（チームを選択してください）</option>
+                            <!-- JSで挿入 -->
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="stats-player-select">選手</label>
+                        <select id="stats-player-select" required>
+                             <option value="">（チームを選択してください）</option>
+                             <!-- JSで該当チームの選手ロード -->
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="stats-season">年度</label>
+                        <input type="number" id="stats-season" value="2026" required>
+                    </div>
+
+                    <!-- 打撃用フィールド -->
+                    <div id="batting-fields">
+                        <div class="flex-row">
+                            <div class="form-group flex-1">
+                                <label for="stats-batting-average">打率</label>
+                                <input type="text" id="stats-batting-average" placeholder=".300">
+                            </div>
+                            <div class="form-group flex-1">
+                                <label for="stats-games-b">試合数</label>
+                                <input type="number" id="stats-games-b">
+                            </div>
+                            <div class="form-group flex-1">
+                                <label for="stats-at-bats">打数</label>
+                                <input type="number" id="stats-at-bats">
+                            </div>
+                        </div>
+                        <div class="flex-row">
+                            <div class="form-group flex-1">
+                                <label for="stats-hits">安打</label>
+                                <input type="number" id="stats-hits">
+                            </div>
+                            <div class="form-group flex-1">
+                                <label for="stats-home-runs">本塁打</label>
+                                <input type="number" id="stats-home-runs">
+                            </div>
+                            <div class="form-group flex-1">
+                                <label for="stats-rbis">打点</label>
+                                <input type="number" id="stats-rbis">
+                            </div>
+                            <div class="form-group flex-1">
+                                <label for="stats-ops">OPS</label>
+                                <input type="text" id="stats-ops" placeholder=".850">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 投手用フィールド -->
+                    <div id="pitching-fields" style="display: none;">
+                        <div class="flex-row">
+                            <div class="form-group flex-1">
+                                <label for="stats-era">防御率</label>
+                                <input type="text" id="stats-era" placeholder="3.50">
+                            </div>
+                            <div class="form-group flex-1">
+                                <label for="stats-games-p">登板数</label>
+                                <input type="number" id="stats-games-p">
+                            </div>
+                        </div>
+                        <div class="flex-row">
+                            <div class="form-group flex-1">
+                                <label for="stats-wins">勝利</label>
+                                <input type="number" id="stats-wins">
+                            </div>
+                            <div class="form-group flex-1">
+                                <label for="stats-losses">敗北</label>
+                                <input type="number" id="stats-losses">
+                            </div>
+                            <div class="form-group flex-1">
+                                <label for="stats-saves">セーブ</label>
+                                <input type="number" id="stats-saves">
+                            </div>
+                        </div>
+                        <div class="flex-row">
+                            <div class="form-group flex-1">
+                                <label for="stats-innings">投球回</label>
+                                <input type="text" id="stats-innings">
+                            </div>
+                            <div class="form-group flex-1">
+                                <label for="stats-strikeouts">奪三振</label>
+                                <input type="number" id="stats-strikeouts">
+                            </div>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="primary-btn">保存</button>
+                    <button type="button" onclick="resetStatsForm()" style="background:transparent; border:1px solid #aaa; color:#aaa; padding:8px; border-radius:4px; margin-left:10px; cursor:pointer;">キャンセル</button>
+                 </form>
+            </div>
+
+             <div class="section">
+                 <h2>成績データ管理</h2>
+                 <div class="tabs" style="margin-bottom: 10px;">
+                    <button class="tab-btn active" id="btn-stats-batting" onclick="switchStatsTab('batting')">打撃成績</button>
+                    <button class="tab-btn" id="btn-stats-pitching" onclick="switchStatsTab('pitching')">投手成績</button>
+                </div>
+                 <div style="overflow-x: auto;">
+                    <table id="stats-table">
+                        <thead>
+                            <!-- JSで生成 -->
+                        </thead>
+                        <tbody>
+                            <!-- JSで生成 -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+      </div>
+    </div>
+
+    <script src="js/admin-db.js"></script>
+    <script>
+        function showTab(tabName) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+            
+            document.getElementById(tabName + '-tab').classList.add('active');
+            // ボタンのアクティブ化ロジックは簡易的に（クラス検索で）
+            const btns = document.querySelectorAll('.tabs > .tab-btn');
+            // 親の .tabs 直下のボタンのみ対象にする修正
+            
+            // タブボタンの対応付けが少しハードコード気味だが、とりあえずインデックスで
+            if(tabName === 'teams') btns[0].classList.add('active');
+            if(tabName === 'players') btns[1].classList.add('active');
+            if(tabName === 'stats') {
+                btns[2].classList.add('active');
+                switchStatsTab('batting'); // デフォルトで打撃成績表示
+            }
+        }
+    </script>
+  </body>
+</html>

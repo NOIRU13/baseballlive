@@ -222,6 +222,13 @@ function setupEventListeners() {
                     
                     newState.pitcher[team] = pitcherEl.value;
                     
+                    // 先発投手の設定（スタメンセット時）
+                    if (!newState.startingPitcher) newState.startingPitcher = { away: '', home: '' };
+                    if (!prevPitcher && pitcherEl.value) {
+                        // 初めて投手が設定される場合、先発として記録
+                        newState.startingPitcher[team] = pitcherEl.value;
+                    }
+                    
                     // 投手が変わったら旧投手の成績をDB保存
                     if (prevPitcher && prevPitcher !== pitcherEl.value) {
                         savePitcherStatsToDB(team, prevPitcher);
@@ -236,14 +243,8 @@ function setupEventListeners() {
         // Apply changes
         State.setState(newState);
 
-        // Animation Event
-        if (changes.length > 0) {
-            State.state.lastLineupChange = {
-                timestamp: Date.now(),
-                changes: changes
-            };
-        }
-
+        // 表示ページに反映＋スタメン発表アニメーション
+        Sync.broadcastResultEvent('LINEUP_ANNOUNCEMENT', State.isAdminMode, State.state);
         updateAndSave();
 
         // 保存完了フィードバック
@@ -398,11 +399,26 @@ function setupEventListeners() {
     // 試合リセット
     addListener('btn-reset-game', 'click', () => {
         if (confirm('\u672C\u5F53\u306B\u8A66\u5408\u30C7\u30FC\u30BF\u3092\u30EA\u30BB\u30C3\u30C8\u3057\u307E\u3059\u304B\uFF1F\n\u3053\u306E\u64CD\u4F5C\u306F\u53D6\u308A\u6D88\u305B\u307E\u305B\u3093\u3002')) {
+            // Stateをリセット
             State.resetState();
-            State.resetState();
-            Render.generateLineupInputs(State.state);
+            
+            // チーム選択プルダウンをリセット
+            const awaySelect = document.getElementById('away-team-select');
+            const homeSelect = document.getElementById('home-team-select');
+            if (awaySelect) awaySelect.value = '';
+            if (homeSelect) homeSelect.value = '';
+            
+            // teamSelectionsをクリア
+            teamSelections.away = null;
+            teamSelections.home = null;
+            
+            // ラインナップ入力欄を再生成
+            Render.generateLineupInputs(State.state, allPlayers, teamSelections);
+            
+            // スコア追跡をリセット
             const currentTeam = State.state.inning.half === 'top' ? 'away' : 'home';
-            State.state.scoreAtStartOfAtBat = getTotalScore(State.state, currentTeam); // Reset score tracker
+            State.state.scoreAtStartOfAtBat = getTotalScore(State.state, currentTeam);
+            
             updateAndSave();
         }
     });
@@ -491,9 +507,171 @@ function setupEventListeners() {
             const newTotalScore = getTotalScore(State.state, currentTeam);
             State.state.scoreAtStartOfAtBat = newTotalScore;
             
+            // --- 得点ログ記録 (Result Log) ---
+            // --- 得点ログ記録 (Result Log) ---
+            // 得点が入った場合のみ記録
+            if (rbi > 0) {
+                const shortResult = getShortResultName(result);
+                const rbiStr = getCircledNumber(rbi);
+                const halfStr = currentHalf === 'top' ? '表' : '裏';
+                
+                // 内部用フォーマット: [team] 表示用文字列
+                // 表示用: "1回表　佐藤輝明　本③"
+                const displayLog = `${State.state.inning.number}回${halfStr}\u3000${batterName}\u3000${shortResult}${rbiStr}`;
+                const logString = `[${currentTeam}] ${displayLog}`;
+                
+                if (!State.state.scoreLogs) State.state.scoreLogs = [];
+                State.state.scoreLogs.unshift(logString); // 先頭に追加（最新が上）
+                // 最大履歴数を制限（例：最新20件）
+                if (State.state.scoreLogs.length > 20) State.state.scoreLogs.pop();
+            }
+            
             updateAndSave();
         });
     });
+
+    // 選手交代ボタン (Delegation from dynamic elements)
+    document.addEventListener('click', (e) => {
+        if (e.target.classList.contains('btn-sub-player')) {
+            const team = e.target.dataset.team;
+            const order = e.target.dataset.order; // 0-8 or 'pitcher'
+            
+            if (order === 'pitcher') {
+                handlePitcherSubstitution(team);
+            } else {
+                handleBatterSubstitution(team, parseInt(order));
+            }
+        }
+    });
+
+function getCircledNumber(n) {
+    const map = { 1:'①', 2:'②', 3:'③', 4:'④' };
+    return map[n] || `(${n})`;
+}
+
+function getShortResultName(type) {
+    const map = {
+        'single': '安', 'double': '2B', 'triple': '3B', 'homerun': 'HR',
+        'walk': '四球', 'hbp': '死球', 'error': '失策',
+        'strikeout': '三振', 'groundout': 'ゴロ', 'flyout': '飛', 'lineout': '直',
+        'sacrifice': '犠打', 'fc': '野選', 'dp': '併殺'
+    };
+    return map[type] || type;
+}
+
+function handlePitcherSubstitution(team) {
+    // 投手交代処理：プルダウンの値を取得してStateに保存し、アニメーションを発火
+    
+    // プルダウンから現在の選択値を取得
+    const pitcherEl = document.querySelector(`.lineup-input-pitcher[data-team="${team}"]`);
+    if (!pitcherEl) {
+        console.warn('投手プルダウンが見つかりません');
+        return;
+    }
+    
+    const newPitcher = pitcherEl.value;
+    if (!State.state.pitcher) State.state.pitcher = { away: '', home: '' };
+    const oldPitcher = State.state.pitcher[team];
+    
+    // 変更がない場合は何もしない
+    if (newPitcher === oldPitcher) {
+        alert('投手の変更がありません。');
+        return;
+    }
+    
+    // 先発投手の設定（初回のみ）
+    if (!State.state.startingPitcher) State.state.startingPitcher = { away: '', home: '' };
+    if (!State.state.startingPitcher[team]) {
+        // 先発投手が未設定の場合、最初の投手を先発として記録
+        State.state.startingPitcher[team] = oldPitcher || newPitcher;
+    }
+    
+    // 投手交代履歴の管理
+    if (!State.state.pitcherHistory) State.state.pitcherHistory = { away: [], home: [] };
+    
+    // 新しい投手が先発と異なる場合、履歴に追加
+    if (newPitcher && newPitcher !== State.state.startingPitcher[team]) {
+        // 既に履歴にある場合は追加しない（重複防止）
+        if (!State.state.pitcherHistory[team].includes(newPitcher)) {
+            State.state.pitcherHistory[team].push(newPitcher);
+        }
+    }
+    
+    // Stateに反映
+    State.state.pitcher[team] = newPitcher;
+    
+    // 旧投手の成績をDB保存
+    if (oldPitcher && oldPitcher !== newPitcher) {
+        savePitcherStatsToDB(team, oldPitcher);
+        resetPitcherTodayStats(team, State.state);
+    }
+    
+    // アニメーション用の変更情報を作成
+    const changes = [{
+        type: 'pitcher',
+        team: team,
+        oldName: oldPitcher,
+        newName: newPitcher
+    }];
+    
+    State.state.lastLineupChange = {
+        timestamp: Date.now(),
+        changes: changes
+    };
+    
+    // 保存と反映
+    updateAndSave();
+}
+
+function handleBatterSubstitution(team, order) {
+    // 打者交代処理：プルダウンの値を取得してStateに保存し、アニメーションを発火
+    
+    // プルダウンから現在の選択値を取得
+    const nameEl = document.querySelector(`.lineup-input-name[data-team="${team}"][data-order="${order}"]`);
+    const posEl = document.querySelector(`.lineup-input-pos[data-team="${team}"][data-order="${order}"]`);
+    
+    if (!nameEl) {
+        console.warn('打者プルダウンが見つかりません');
+        return;
+    }
+    
+    const newName = nameEl.value;
+    const newPos = posEl ? posEl.value : '';
+    const oldName = State.state.lineup[team][order];
+    const oldPos = State.state.positions ? State.state.positions[team][order] : '';
+    
+    // 変更がない場合は何もしない
+    if (newName === oldName && newPos === oldPos) {
+        alert('選手の変更がありません。');
+        return;
+    }
+    
+    // Stateに反映
+    State.state.lineup[team][order] = newName;
+    if (posEl) {
+        if (!State.state.positions) State.state.positions = { away: [], home: [] };
+        State.state.positions[team][order] = newPos;
+    }
+    
+    // アニメーション用の変更情報を作成
+    const changes = [{
+        type: 'batter',
+        team: team,
+        order: order,
+        oldName: oldName,
+        newName: newName,
+        pos: newPos
+    }];
+    
+    State.state.lastLineupChange = {
+        timestamp: Date.now(),
+        changes: changes
+    };
+    
+    // 保存と反映
+    updateAndSave();
+}
+
 
 function convertResultToDbType(type) {
     // Map button data-result to DB enum/varchar
@@ -562,6 +740,12 @@ function handleLineupInput(e) {
 function updateAndSave() {
     Render.updateDisplay(State.state, State.isAdminMode, State.isDisplayMode);
     State.saveState();
+}
+
+// ローカル保存のみ（ブロードキャストしない）- 保存ボタン用
+function updateAndSaveLocal() {
+    Render.updateDisplay(State.state, State.isAdminMode, State.isDisplayMode);
+    State.saveState(true); // skipBroadcast = true
 }
 
 function nextBatter() {
@@ -728,4 +912,150 @@ function populateTeamSelects() {
         // チーム名は保存ボタン押下時にStateへ反映
         Render.generateLineupInputs(State.state, allPlayers, teamSelections);
     });
+
+    // スタメンテンプレート機能のイベントリスナー
+    setupTemplateListeners();
+}
+
+/**
+ * スタメンテンプレート機能のイベントリスナーを設定
+ */
+function setupTemplateListeners() {
+    // 先攻チームテンプレート保存
+    const btnSaveAway = document.getElementById('btn-save-template-away');
+    if (btnSaveAway) {
+        btnSaveAway.addEventListener('click', () => saveLineupTemplate('away'));
+    }
+    
+    // 先攻チームテンプレート読み込み
+    const btnLoadAway = document.getElementById('btn-load-template-away');
+    if (btnLoadAway) {
+        btnLoadAway.addEventListener('click', () => loadLineupTemplate('away'));
+    }
+    
+    // 後攻チームテンプレート保存
+    const btnSaveHome = document.getElementById('btn-save-template-home');
+    if (btnSaveHome) {
+        btnSaveHome.addEventListener('click', () => saveLineupTemplate('home'));
+    }
+    
+    // 後攻チームテンプレート読み込み
+    const btnLoadHome = document.getElementById('btn-load-template-home');
+    if (btnLoadHome) {
+        btnLoadHome.addEventListener('click', () => loadLineupTemplate('home'));
+    }
+}
+
+/**
+ * スタメンテンプレートを保存
+ * @param {string} side - 'away' または 'home'
+ */
+function saveLineupTemplate(side) {
+    // 現在選択されているチームIDを取得
+    const selectId = side === 'away' ? 'away-team-select' : 'home-team-select';
+    const selectEl = document.getElementById(selectId);
+    const teamId = selectEl ? selectEl.value : null;
+    
+    if (!teamId) {
+        alert('チームを選択してください。');
+        return;
+    }
+    
+    // 現在のフォームからラインナップを取得
+    const lineup = [];
+    const positions = [];
+    let pitcher = '';
+    
+    for (let i = 0; i < 9; i++) {
+        const nameEl = document.querySelector(`.lineup-input-name[data-team="${side}"][data-order="${i}"]`);
+        const posEl = document.querySelector(`.lineup-input-pos[data-team="${side}"][data-order="${i}"]`);
+        lineup.push(nameEl ? nameEl.value : '');
+        positions.push(posEl ? posEl.value : '');
+    }
+    
+    const pitcherEl = document.querySelector(`.lineup-input-pitcher[data-team="${side}"]`);
+    if (pitcherEl) {
+        pitcher = pitcherEl.value;
+    }
+    
+    // テンプレートオブジェクト作成
+    const template = {
+        teamId: teamId,
+        lineup: lineup,
+        positions: positions,
+        pitcher: pitcher,
+        savedAt: new Date().toISOString()
+    };
+    
+    // ローカルストレージに保存（チームIDをキーにする）
+    const storageKey = `lineup_template_${teamId}`;
+    localStorage.setItem(storageKey, JSON.stringify(template));
+    
+    // 保存完了メッセージ
+    const teamName = allTeams.find(t => t.id == teamId)?.name || 'チーム';
+    alert(`「${teamName}」のスタメンテンプレートを保存しました。`);
+    
+    console.log('Template saved:', storageKey, template);
+}
+
+/**
+ * スタメンテンプレートを読み込み
+ * @param {string} side - 'away' または 'home'
+ */
+function loadLineupTemplate(side) {
+    console.log('loadLineupTemplate called for:', side);
+    
+    // 現在選択されているチームIDを取得
+    const selectId = side === 'away' ? 'away-team-select' : 'home-team-select';
+    const selectEl = document.getElementById(selectId);
+    const teamId = selectEl ? selectEl.value : null;
+    
+    console.log('Selected team ID:', teamId);
+    
+    if (!teamId) {
+        alert('チームを選択してください。');
+        return;
+    }
+    
+    // ローカルストレージから読み込み
+    const storageKey = `lineup_template_${teamId}`;
+    const savedData = localStorage.getItem(storageKey);
+    
+    console.log('Storage key:', storageKey, 'Saved data:', savedData);
+    
+    if (!savedData) {
+        const teamName = allTeams.find(t => t.id == teamId)?.name || 'チーム';
+        alert(`「${teamName}」のスタメンテンプレートが見つかりません。\n先にテンプレートを保存してください。`);
+        return;
+    }
+    
+    const template = JSON.parse(savedData);
+    console.log('Template loaded:', template);
+    
+    // プルダウンの値のみを更新（Stateには反映しない）
+    for (let i = 0; i < 9; i++) {
+        const nameEl = document.querySelector(`.lineup-input-name[data-team="${side}"][data-order="${i}"]`);
+        const posEl = document.querySelector(`.lineup-input-pos[data-team="${side}"][data-order="${i}"]`);
+        
+        if (nameEl && template.lineup[i]) {
+            nameEl.value = template.lineup[i];
+            console.log(`Set batter ${i}:`, template.lineup[i]);
+        }
+        if (posEl && template.positions[i]) {
+            posEl.value = template.positions[i];
+        }
+    }
+    
+    // 投手プルダウンの値を更新
+    const pitcherEl = document.querySelector(`.lineup-input-pitcher[data-team="${side}"]`);
+    if (pitcherEl && template.pitcher) {
+        pitcherEl.value = template.pitcher;
+        console.log('Set pitcher:', template.pitcher);
+    }
+    
+    // 読み込み完了メッセージ
+    const teamName = allTeams.find(t => t.id == teamId)?.name || 'チーム';
+    alert(`「${teamName}」のスタメンテンプレートを読み込みました。\n保存ボタンを押すと反映されます。`);
+    
+    console.log('Template loaded to form (not saved):', storageKey, template);
 }

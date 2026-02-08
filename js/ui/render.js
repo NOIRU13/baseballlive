@@ -26,6 +26,12 @@ export function updateDisplay(state, isAdminMode, isDisplayMode) {
     updateLineupDisplay(state, isAdminMode); // AdminMode判定内でID切り替えなどは関数内で行う
     updateCurrentBatterDisplay(state, isAdminMode);
     updateBottomStats(state, isDisplayMode);
+    
+    // New Features
+    if (isDisplayMode || isAdminMode) {
+        updateScoreLog(state);
+        updatePitcherRelay(state);
+    }
 }
 
 /**
@@ -35,8 +41,8 @@ export function updateDisplay(state, isAdminMode, isDisplayMode) {
 export function updateTeamDisplay(state) {
     // 略称があればそちらを使う（index.html表示用）
     const shortNames = state.teamShortNames || {};
-    const awayDisplay = shortNames.away || state.teams.away;
-    const homeDisplay = shortNames.home || state.teams.home;
+    const awayDisplay = shortNames.away || state.teams.away || '';
+    const homeDisplay = shortNames.home || state.teams.home || '';
 
     // サイドバー（略称）
     // アニメーション付きで更新
@@ -65,7 +71,7 @@ export function updateInningDisplay(state) {
     
     setText('inning-half', halfText);
     setText('inning-number', state.inning.number);
-    setText('inning-info', state.inning.number + '\u56DE ' + halfText);
+    setText('inning-info', (state.inning.number ? state.inning.number + '\u56DE ' : '') + halfText);
 }
 
 /**
@@ -186,12 +192,16 @@ export function updateBottomStats(state, isDisplayMode) {
 
     // BATTER
     const batterIndex = state.currentBatter[offenseTeam];
-    const batterName = state.lineup[offenseTeam][batterIndex] || '---';
+    const batterName = state.lineup[offenseTeam][batterIndex] || '';
     setText('current-batter-name', batterName);
     setText('batter-name-large', batterName);
+    
+    // Set Role Label safely (admin mode doesn't have these labels maybe, but index does)
+    const batterRoleLabel = document.querySelector('#player-display-left .player-role-label');
+    if (batterRoleLabel) batterRoleLabel.textContent = batterName ? 'BATTER' : '';
 
     // PITCHER
-    let pitcherName = '---';
+    let pitcherName = '';
     const dhPitcherInput = (state.pitcher && state.pitcher[defenseTeam]) ? state.pitcher[defenseTeam] : '';
     
     if (dhPitcherInput && dhPitcherInput.trim() !== '') {
@@ -207,10 +217,13 @@ export function updateBottomStats(state, isDisplayMode) {
                 }
             }
         }
-        if (!pitcherInLineup) pitcherName = '投手';
+        if (!pitcherInLineup) pitcherName = '';
     }
     setText('current-pitcher-name', pitcherName);
     setText('pitcher-name-large', pitcherName);
+    
+    const pitcherRoleLabel = document.querySelector('#player-display-right .player-role-label');
+    if (pitcherRoleLabel) pitcherRoleLabel.textContent = pitcherName ? 'PITCHER' : '';
 
     // 打者の当日成績
     const batterStatsToday = document.getElementById('batter-stats-today');
@@ -296,10 +309,10 @@ async function updateSeasonStats(batterName, pitcherName, state) {
     } else {
         lastBatterId = null;
         lastBatterDbStats = null;
-        setText('batter-avg', '.---');
+        setText('batter-avg', '');
         setText('batter-hr', '0');
         setText('batter-rbi', '0');
-        setText('batter-ops', '.---');
+        setText('batter-ops', '');
     }
 
     // Pitcher Stats（選手ごとにDBから取得 + 当日成績）
@@ -344,8 +357,8 @@ async function updateSeasonStats(batterName, pitcherName, state) {
     } else {
         lastPitcherId = null;
         lastPitcherDbStats = null;
-        setText('pitcher-era', '-.--');
-        setText('pitcher-k9', '-.--');
+        setText('pitcher-era', '');
+        setText('pitcher-k9', '');
     }
 }
 
@@ -490,7 +503,7 @@ export function updateLineupDisplay(state, isAdminMode) {
                             (state.inning.half === 'bottom' && team === 'home');
                          
         for (let i = 0; i < 9; i++) {
-            const playerName = state.lineup[team][i] || ((i + 1) + '\u756A');
+            const playerName = state.lineup[team][i] || '';
             const pos = (state.positions && state.positions[team][i]) ? state.positions[team][i] : '';
             const isActive = isAttacking && i === currentBatterIndex;
             
@@ -498,9 +511,15 @@ export function updateLineupDisplay(state, isAdminMode) {
             playerDiv.className = 'lineup-item' + (isActive ? ' active' : '');
             
             const posClass = getPositionClass(pos);
-            playerDiv.innerHTML = '<span class="order-num">' + (i + 1) + '</span>' +
-                '<span class="player-pos ' + posClass + '">' + pos + '</span>' +
-                '<span class="player-name">' + playerName + '</span>';
+            if (playerName) {
+                playerDiv.innerHTML = '<span class="order-num">' + (i + 1) + '</span>' +
+                    '<span class="player-pos ' + posClass + '">' + pos + '</span>' +
+                    '<span class="player-name">' + playerName + '</span>';
+            } else {
+                 playerDiv.innerHTML = '';
+                 playerDiv.style.border = 'none'; // Hide border if empty
+                 playerDiv.style.background = 'transparent';
+            }
             container.appendChild(playerDiv);
         }
 
@@ -511,10 +530,13 @@ export function updateLineupDisplay(state, isAdminMode) {
                 const pitcherDiv = document.createElement('div');
                 pitcherDiv.className = 'lineup-item pitcher-item';
                 
-                pitcherDiv.innerHTML = '<span class="order-num">P</span>' +
-                    '<span class="player-pos pos-pitcher">投</span>' +
-                    '<span class="player-name">' + pitcherName + '</span>';
-                container.appendChild(pitcherDiv);
+                // Only show P and Position if pitcherName is present
+                if (pitcherName) {
+                    pitcherDiv.innerHTML = '<span class="order-num">P</span>' +
+                        '<span class="player-pos pos-pitcher">投</span>' +
+                        '<span class="player-name">' + pitcherName + '</span>';
+                    container.appendChild(pitcherDiv);
+                }
             }
         }
     });
@@ -578,7 +600,8 @@ export function updateCurrentBatterDisplay(state, isAdminMode) {
     const batterName = state.lineup[team][batterIndex] || '---';
     
     // Adminのcontrol-panelにあるもの
-    setText('current-batter-name', batterName); // 注意: BottomStatsでも同じIDを使っている場合があるが、updateCurrentBatterDisplayはAdmin用として機能させる
+    setText('current-batter-name', batterName); 
+    setText('current-batter-name-control', batterName); // Control Tab
     setText('current-batter-order', batterIndex + 1);
 }
 
@@ -586,6 +609,12 @@ export function updateCurrentBatterDisplay(state, isAdminMode) {
  * 結果アニメーション表示
  */
 export function showResultAnimation(resultCode) {
+    if (resultCode === 'LINEUP_ANNOUNCEMENT') {
+        playLineupAnnouncement();
+        return;
+    }
+    
+    // 既存のヒット等のアニメーション
     const overlay = document.getElementById('result-overlay');
     const textEl = document.getElementById('result-text');
     if (!overlay || !textEl) return;
@@ -667,8 +696,17 @@ export function generateLineupInputs(state, players = [], teamSelections = {away
                         opt.selected = true;
                     }
                     posSelect.appendChild(opt);
+                posSelect.appendChild(opt);
                 });
                 row.appendChild(posSelect);
+                
+                // 交代ボタン
+                const subBtn = document.createElement('button');
+                subBtn.className = 'btn-sub-player';
+                subBtn.textContent = '交代';
+                subBtn.dataset.team = team;
+                subBtn.dataset.order = i;
+                row.appendChild(subBtn);
                 
                 container.appendChild(row);
             }
@@ -704,6 +742,14 @@ export function generateLineupInputs(state, players = [], teamSelections = {away
             pPos.style.fontSize = '11px';
             pPos.style.color = '#ffd700';
             pRow.appendChild(pPos);
+            
+            // 交代ボタン(P)
+            const subBtnP = document.createElement('button');
+            subBtnP.className = 'btn-sub-player';
+            subBtnP.textContent = '交代';
+            subBtnP.dataset.team = team;
+            subBtnP.dataset.order = 'pitcher';
+            pRow.appendChild(subBtnP);
             
             container.appendChild(pRow);
             
@@ -930,6 +976,7 @@ export function showLineupAnimation(changes) {
         }
     });
 }
+
 // Helper to update text with animation only if changed
 function updateTextWithAnimation(id, newText, animationClass) {
     const el = document.getElementById(id);
@@ -946,3 +993,374 @@ function updateTextWithAnimation(id, newText, animationClass) {
         }, 1000);
     }
 }
+
+// 得点ログのキャッシュ（再描画判定用）
+let lastScoreLogsHash = '';
+
+/**
+ * 得点ログの表示更新
+ * 最新5件の得点ログを表示（内容変更時のみ再描画）
+ */
+export function updateScoreLog(state) {
+    const awayContainer = document.getElementById('score-log-team-away');
+    const homeContainer = document.getElementById('score-log-team-home');
+    
+    // Fallback for old HTML structure
+    if (!awayContainer || !homeContainer) return;
+
+    const logs = state.scoreLogs || [];
+    
+    // Check hash to avoid redraw
+    // Entire log history is relevant for chronological display
+    const currentHash = logs.join('|||');
+    if (currentHash === lastScoreLogsHash) return;
+    lastScoreLogsHash = currentHash;
+    
+    // Clear containers
+    awayContainer.innerHTML = '';
+    homeContainer.innerHTML = '';
+    
+    // Show section if logs exist
+    const section = document.getElementById('score-log-section');
+    if (section) {
+        section.style.display = logs.length > 0 ? 'block' : 'none';
+    }
+
+    // Process logs: Separate by team and store content
+    // logs are Newest First. We want Chronological (Oldest First) for summary.
+    const awayLogs = [];
+    const homeLogs = [];
+    
+    // Iterate reverse (Oldest -> Newest)
+    for (let i = logs.length - 1; i >= 0; i--) {
+        const log = logs[i];
+        const match = log.match(/^\[(.+?)\]\s+(.+)$/);
+        if (match) {
+            const teamKey = match[1]; // 'away' or 'home'
+            const content = match[2];
+            
+            if (teamKey === 'away') awayLogs.push(content);
+            else if (teamKey === 'home') homeLogs.push(content);
+            // Ignore legacy or unknown format without [team] prefix
+        }
+    }
+    
+    // Render Away logs
+    awayLogs.forEach(content => {
+        const el = document.createElement('div');
+        el.className = 'score-log-item compact';
+        el.textContent = content;
+        awayContainer.appendChild(el);
+    });
+
+    // Render Home logs
+    homeLogs.forEach(content => {
+        const el = document.createElement('div');
+        el.className = 'score-log-item compact';
+        el.textContent = content;
+        homeContainer.appendChild(el);
+    });
+}
+
+/**
+ * 得点ログをパースしてオブジェクトに変換
+ * @param {string} log - ログ文字列（例: "[日ハム] 1回裏 佐藤輝明 HR①"）
+ * @returns {Object|null} パース結果またはnull
+ */
+function parseScoreLog(log) {
+    if (!log) return null;
+    
+    // 新パターン: "[チーム名] N回[表/裏] [選手名] [結果][得点]"
+    const matchNew = log.match(/^\[(.+?)\]\s+(\d+回[表裏])\s+(.+?)\s+([^\s①②③④⑤]+)(①|②|③|④|⑤)?$/);
+    
+    if (matchNew) {
+        return {
+            team: matchNew[1],
+            inning: matchNew[2],
+            batter: matchNew[3],
+            result: matchNew[4],
+            rbi: matchNew[5] || ''
+        };
+    }
+    
+    // 旧パターン（互換性のため）: "N回[表/裏] [選手名] [結果][得点]"
+    const matchOld = log.match(/^(\d+回[表裏])\s+(.+?)\s+([^\s①②③④⑤]+)(①|②|③|④|⑤)?$/);
+    
+    if (matchOld) {
+        return {
+            team: '',
+            inning: matchOld[1],
+            batter: matchOld[2],
+            result: matchOld[3],
+            rbi: matchOld[4] || ''
+        };
+    }
+    
+    // パースできなかった場合
+    return null;
+}
+
+/**
+ * 投手リレー（先発・継投）の表示更新
+ * 両チームの投手情報を左右に表示
+ */
+export function updatePitcherRelay(state) {
+    // 新しいHTML構造に対応
+    const awayPanel = document.getElementById('away-pitcher-panel');
+    const homePanel = document.getElementById('home-pitcher-panel');
+    
+    // 新構造が無い場合は旧構造互換（フォールバック）
+    if (!awayPanel || !homePanel) {
+        updatePitcherRelayLegacy(state);
+        return;
+    }
+    
+    // 現在守備中のチーム
+    const defendingTeam = state.inning.half === 'top' ? 'home' : 'away';
+    
+    // 両チームの投手情報を更新
+    ['away', 'home'].forEach(team => {
+        const panel = team === 'away' ? awayPanel : homePanel;
+        const isDefending = team === defendingTeam;
+        
+        // チーム名ラベルを更新
+        const teamLabel = document.getElementById(`${team}-pitcher-team-label`);
+        if (teamLabel) {
+            const teamName = state.teamShortNames && state.teamShortNames[team] 
+                ? state.teamShortNames[team] 
+                : (state.teams && state.teams[team] ? state.teams[team] : (team === 'away' ? 'AWAY' : 'HOME'));
+            teamLabel.textContent = teamName;
+        }
+        
+        // 先発投手名を取得（startingPitcherから）
+        const starterName = state.startingPitcher ? (state.startingPitcher[team] || '') : '';
+        // 現在の投手名を取得
+        const currentPitcherName = state.pitcher ? (state.pitcher[team] || '') : '';
+        
+        // 先発投手を表示
+        const starterEntry = document.getElementById(`${team}-starter-entry`);
+        const starterNameEl = document.getElementById(`${team}-starter-name`);
+        
+        if (starterNameEl) {
+            // 先発投手が設定されている場合のみ表示
+            starterNameEl.textContent = starterName || '-';
+        }
+        
+        if (starterEntry) {
+            // 先発が現在もマウンドにいる場合
+            const starterOnMound = isDefending && starterName && starterName === currentPitcherName;
+            starterEntry.classList.toggle('on-mound', starterOnMound);
+            
+            // 先発が未設定の場合は非表示
+            starterEntry.style.display = starterName ? 'flex' : 'none';
+        }
+        
+        // リリーフ投手を表示（pitcherHistoryから）
+        const relayContainer = document.getElementById(`${team}-relay-container`);
+        const reliefSection = document.getElementById(`${team}-relief-section`);
+        
+        if (relayContainer && reliefSection) {
+            relayContainer.innerHTML = '';
+            
+            // 投手交代履歴から全てのリリーフ投手を表示（登板順 = 配列の順番）
+            const pitcherHistory = state.pitcherHistory ? (state.pitcherHistory[team] || []) : [];
+            
+            if (pitcherHistory.length > 0) {
+                // リリーフがいる場合はセクションを表示
+                reliefSection.classList.add('has-relievers');
+                
+                pitcherHistory.forEach(reliefPitcher => {
+                    const reliefItem = document.createElement('div');
+                    reliefItem.className = 'relief-pitcher-item';
+                    
+                    // 現在守備中のチームで、かつ現在の投手と一致する場合はアクティブ表示
+                    if (isDefending && reliefPitcher === currentPitcherName) {
+                        reliefItem.classList.add('on-mound');
+                    }
+                    
+                    reliefItem.textContent = reliefPitcher;
+                    
+                    relayContainer.appendChild(reliefItem);
+                });
+            } else {
+                // リリーフがいない場合はセクションを非表示
+                reliefSection.classList.remove('has-relievers');
+            }
+        }
+        
+        // パネル自体の表示/非表示
+        // 投手がセットされていない場合は控えめに表示
+        const hasContent = starterName || (state.pitcherHistory && state.pitcherHistory[team] && state.pitcherHistory[team].length > 0);
+        panel.style.opacity = hasContent ? '1' : '0.3';
+    });
+}
+
+/**
+ * 旧HTML構造用のフォールバック関数
+ */
+function updatePitcherRelayLegacy(state) {
+    const starterInfo = document.getElementById('starter-info');
+    const reliefInfo = document.getElementById('relief-info');
+    if (!starterInfo || !reliefInfo) return;
+
+    const currentTeam = state.inning.half === 'top' ? 'home' : 'away';
+    
+    const starterName = state.startingPitcher ? state.startingPitcher[currentTeam] : '';
+    const currentPitcherName = state.pitcher ? state.pitcher[currentTeam] : '';
+    
+    const starterEl = document.getElementById('display-starter-name');
+    if (starterEl) starterEl.textContent = starterName || '';
+    
+    const starterLabel = document.querySelector('#starter-info .role-label');
+    if (starterLabel) starterLabel.textContent = starterName ? 'STARTING PITCHER' : '';
+    
+    const reliefEl = document.getElementById('display-relief-name');
+    const reliefLabel = document.querySelector('#relief-info .role-label');
+    
+    if (starterName && currentPitcherName && starterName !== currentPitcherName) {
+        reliefInfo.style.display = 'flex';
+        if (reliefEl) reliefEl.textContent = currentPitcherName;
+        if (reliefLabel) reliefLabel.textContent = 'RELIEF PITCHER';
+        
+        starterInfo.classList.remove('active');
+        reliefInfo.classList.add('active');
+    } else {
+        reliefInfo.style.display = 'none';
+        
+        starterInfo.classList.add('active');
+        reliefInfo.classList.remove('active');
+    }
+    
+    if (!starterName) {
+        starterInfo.style.display = 'none';
+    } else {
+        starterInfo.style.display = 'flex';
+    }
+}
+
+
+
+/**
+ * スタメン発表アニメーション
+ */
+export function playLineupAnnouncement() {
+    // 演出: 
+    // 1. 全画面オーバーレイで "STARTING LINEUP"
+    // 2. サイドバーをクリアし、1番から順にスライドインで登場
+    
+    const overlay = document.createElement('div');
+    overlay.className = 'lineup-announcement-overlay';
+    overlay.innerHTML = '<div class="announcement-title">STARTING LINEUP</div>';
+    document.body.appendChild(overlay);
+    
+    // Styles for overlay
+    overlay.style.position = 'fixed';
+    overlay.style.top = '0';
+    overlay.style.left = '0';
+    overlay.style.width = '100%';
+    overlay.style.height = '100%';
+    overlay.style.background = 'rgba(0,0,0,0.8)';
+    overlay.style.display = 'flex';
+    overlay.style.justifyContent = 'center';
+    overlay.style.alignItems = 'center';
+    overlay.style.zIndex = '1000';
+    overlay.style.animation = 'fadeIn 0.5s forwards';
+    
+    const title = overlay.querySelector('.announcement-title');
+    title.style.fontFamily = "'Oswald', sans-serif";
+    title.style.fontSize = '80px';
+    title.style.color = '#ffd700';
+    title.style.textShadow = '0 0 20px rgba(255, 215, 0, 0.8)';
+    title.style.animation = 'scaleUp 1s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
+    
+    // Add CSS for animations if not exists
+    if (!document.getElementById('anim-styles')) {
+        const style = document.createElement('style');
+        style.id = 'anim-styles';
+        style.textContent = `
+            @keyframes scaleUp { from { transform: scale(0); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+            @keyframes highlightRow { 
+                0% { background: rgba(255,255,255,0.1); transform: translateX(0); }
+                50% { background: rgba(255, 215, 0, 0.5); transform: translateX(20px) scale(1.05); box-shadow: 0 0 20px #ffd700; }
+                100% { background: rgba(255,255,255,0.1); transform: translateX(0); }
+            }
+            @keyframes slideInLeft {
+                from { opacity: 0; transform: translateX(-50px); }
+                to { opacity: 1; transform: translateX(0); }
+            }
+            @keyframes slideInRight {
+                from { opacity: 0; transform: translateX(50px); }
+                to { opacity: 1; transform: translateX(0); }
+            }
+            .lineup-item.hidden-for-animation {
+                opacity: 0;
+                visibility: hidden;
+            }
+            .lineup-item.animate-slide-in-left {
+                animation: slideInLeft 0.5s ease-out forwards;
+            }
+            .lineup-item.animate-slide-in-right {
+                animation: slideInRight 0.5s ease-out forwards;
+            }
+        `;
+        document.head.appendChild(style);
+    }
+
+    // サイドバーの選手を一旦非表示にする
+    hideAllLineupItems('away');
+    hideAllLineupItems('home');
+
+    // Sequence
+    setTimeout(() => {
+        // Remove overlay title, show sidebar focus
+        overlay.style.opacity = '0';
+        setTimeout(() => overlay.remove(), 500);
+        
+        // Animate Lineup Rows - ビジターとホームを同時にアニメーション
+        animateLineupRows('away', 0, 'left');
+        animateLineupRows('home', 0, 'right');
+        
+    }, 2000);
+}
+
+/**
+ * サイドバーの全選手を非表示にする
+ */
+function hideAllLineupItems(team) {
+    const container = document.getElementById(`lineup-${team}-display`);
+    if (!container) return;
+    
+    const items = container.querySelectorAll('.lineup-item');
+    items.forEach(item => {
+        item.classList.add('hidden-for-animation');
+    });
+}
+
+/**
+ * サイドバーの選手を順番にアニメーション表示
+ */
+function animateLineupRows(team, delayStart = 0, direction = 'left') {
+    const container = document.getElementById(`lineup-${team}-display`);
+    if (!container) return;
+    
+    const items = container.querySelectorAll('.lineup-item');
+    const animationClass = direction === 'left' ? 'animate-slide-in-left' : 'animate-slide-in-right';
+    
+    items.forEach((item, index) => {
+        setTimeout(() => {
+            // 非表示クラスを外してアニメーションクラスを追加
+            item.classList.remove('hidden-for-animation');
+            item.classList.add(animationClass);
+            
+            // ハイライトも追加
+            item.style.animation = `${direction === 'left' ? 'slideInLeft' : 'slideInRight'} 0.5s ease-out, highlightRow 0.8s ease-out 0.3s`;
+            
+            // アニメーション終了後にクラスをクリーンアップ
+            setTimeout(() => {
+                item.classList.remove(animationClass);
+                item.style.animation = '';
+            }, 1500);
+        }, delayStart + (index * 600)); // 0.6秒間隔
+    });
+}
+

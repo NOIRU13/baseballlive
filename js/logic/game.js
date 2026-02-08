@@ -306,6 +306,9 @@ export function undoLastResult(state) {
     const lastResult = state.resultHistory.pop();
     const { team, batterIndex, result, runnersBefore, countBefore, scoreBefore, outsBefore, pitcherStatsBefore } = lastResult;
     
+    // 現在の得点合計を取得（復元前）
+    const currentTotalScore = state.scores[team].reduce((sum, s) => sum + (s || 0), 0);
+    
     // 結果を削除
     const results = state.atBatResults[team][batterIndex];
     const idx = results.lastIndexOf(result);
@@ -326,6 +329,14 @@ export function undoLastResult(state) {
     state.scores = scoreBefore; 
     state.count.out = outsBefore;
     if (pitcherStatsBefore) state.pitcherStats = pitcherStatsBefore;
+    
+    // 復元後の得点合計を取得
+    const restoredTotalScore = state.scores[team].reduce((sum, s) => sum + (s || 0), 0);
+    
+    // 得点が減った場合、最新の得点ログを削除
+    if (currentTotalScore > restoredTotalScore && state.scoreLogs && state.scoreLogs.length > 0) {
+        state.scoreLogs.shift(); // 先頭（最新）を削除
+    }
     
     // 打者を戻す
     state.currentBatter[team] = batterIndex;
