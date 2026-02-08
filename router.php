@@ -20,7 +20,11 @@ if (strpos($uri, '/api/') === 0) {
         'batting-stats' => __DIR__ . '/api/batting-stats.php',
         'pitching-stats' => __DIR__ . '/api/pitching-stats.php',
         'import-csv' => __DIR__ . '/api/import-csv.php',
-        'export-csv' => __DIR__ . '/api/export-csv.php'
+        'export-csv' => __DIR__ . '/api/export-csv.php',
+        'atbats' => __DIR__ . '/api/atbats.php',
+        'game-pitcher-stats' => __DIR__ . '/api/game-pitcher-stats.php',
+        'state' => __DIR__ . '/api/state.php',
+        'health' => __DIR__ . '/api/health.php'
     ];
 
     if (isset($apiFiles[$endpoint])) {

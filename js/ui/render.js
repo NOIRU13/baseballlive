@@ -30,22 +30,28 @@ export function updateDisplay(state, isAdminMode, isDisplayMode) {
 
 /**
  * チーム名の表示を更新
+ * index.html（display-mode）では略称を使用する
  */
 export function updateTeamDisplay(state) {
-    // サイドバー
-    setText('sidebar-away-name', state.teams.away);
-    setText('sidebar-home-name', state.teams.home);
-    // スコアボード（コード）
-    setText('score-away-code', state.teams.away);
-    setText('score-home-code', state.teams.home);
-    // Admin
+    // 略称があればそちらを使う（index.html表示用）
+    const shortNames = state.teamShortNames || {};
+    const awayDisplay = shortNames.away || state.teams.away;
+    const homeDisplay = shortNames.home || state.teams.home;
+
+    // サイドバー（略称）
+    setText('sidebar-away-name', awayDisplay);
+    setText('sidebar-home-name', homeDisplay);
+    // スコアボード（略称）
+    setText('score-away-code', awayDisplay);
+    setText('score-home-code', homeDisplay);
+    // Admin（フルネーム）
     const adminAway = document.querySelector('#team-away-display .team-name');
     const adminHome = document.querySelector('#team-home-display .team-name');
     if (adminAway) adminAway.textContent = state.teams.away;
     if (adminHome) adminHome.textContent = state.teams.home;
-    // Line Score Table (Bottom)
-    setText('team-name-away', state.teams.away);
-    setText('team-name-home', state.teams.home);
+    // Line Score Table（略称）
+    setText('team-name-away', awayDisplay);
+    setText('team-name-home', homeDisplay);
 }
 
 /**
@@ -224,6 +230,7 @@ export function updateBottomStats(state, isDisplayMode) {
         const innings = state.pitcherStats[defenseTeam].innings || 0;
         setText('pitcher-innings', innings.toFixed(1));
         setText('pitcher-strikeouts', state.pitcherStats[defenseTeam].strikeouts || 0);
+        setText('pitcher-walks', state.pitcherStats[defenseTeam].walks || 0);
         setText('pitcher-runs', state.pitcherStats[defenseTeam].runs || 0);
     }
 
@@ -232,26 +239,33 @@ export function updateBottomStats(state, isDisplayMode) {
 }
 
 async function updateSeasonStats(batterName, pitcherName) {
-    // Batter Stats
+    // Batter Stats（選手ごとにDBから取得）
     const batterId = playerMap[batterName];
     if (batterId) {
         if (batterId !== lastBatterId) {
             lastBatterId = batterId;
             try {
-                const res = await fetch(`/api/stats/batter/${batterId}`);
+                const res = await fetch(`/api/batting-stats?player_id=${batterId}`);
                 if (res.ok) {
-                    const stats = await res.json();
-                    setText('batter-avg', stats.avg);
-                    setText('batter-hr', stats.hr);
-                    setText('batter-rbi', stats.rbi);
-                    setText('batter-ops', stats.ops);
+                    const rows = await res.json();
+                    if (rows.length > 0) {
+                        const s = rows[0]; // 最新シーズン（season DESC）
+                        setText('batter-avg', s.batting_average != null ? Number(s.batting_average).toFixed(3) : '.---');
+                        setText('batter-hr', s.home_runs ?? 0);
+                        setText('batter-rbi', s.rbis ?? 0);
+                        setText('batter-ops', s.ops != null ? Number(s.ops).toFixed(3) : '.---');
+                    } else {
+                        setText('batter-avg', '.---');
+                        setText('batter-hr', '0');
+                        setText('batter-rbi', '0');
+                        setText('batter-ops', '.---');
+                    }
                 }
             } catch (e) {
                 console.error('Failed to fetch batter stats', e);
             }
         }
     } else {
-        // ID未解決 or 選手なし
         lastBatterId = null;
         setText('batter-avg', '.---');
         setText('batter-hr', '0');
@@ -259,17 +273,26 @@ async function updateSeasonStats(batterName, pitcherName) {
         setText('batter-ops', '.---');
     }
 
-    // Pitcher Stats
+    // Pitcher Stats（選手ごとにDBから取得）
     const pitcherId = playerMap[pitcherName];
     if (pitcherId) {
         if (pitcherId !== lastPitcherId) {
             lastPitcherId = pitcherId;
             try {
-                const res = await fetch(`/api/stats/pitcher/${pitcherId}`);
+                const res = await fetch(`/api/pitching-stats?player_id=${pitcherId}`);
                 if (res.ok) {
-                    const stats = await res.json();
-                    setText('pitcher-era', stats.era);
-                    setText('pitcher-k9', stats.k9);
+                    const rows = await res.json();
+                    if (rows.length > 0) {
+                        const s = rows[0];
+                        setText('pitcher-era', s.era != null ? Number(s.era).toFixed(2) : '-.--');
+                        const ip = parseFloat(s.innings_pitched) || 0;
+                        const k = parseInt(s.strikeouts) || 0;
+                        const k9 = ip > 0 ? ((k / ip) * 9).toFixed(2) : '-.--';
+                        setText('pitcher-k9', k9);
+                    } else {
+                        setText('pitcher-era', '-.--');
+                        setText('pitcher-k9', '-.--');
+                    }
                 }
             } catch (e) {
                 console.error('Failed to fetch pitcher stats', e);

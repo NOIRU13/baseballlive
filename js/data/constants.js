@@ -7,6 +7,10 @@ export const DEFAULT_STATE = {
         home: '\u30DB\u30FC\u30E0',
         away: '\u30A2\u30A6\u30A7\u30A4'
     },
+    teamShortNames: {
+        home: '',
+        away: ''
+    },
     inning: {
         number: 1,
         half: 'top' // 'top' = \u8868, 'bottom' = \u88CF
@@ -61,8 +65,8 @@ export const DEFAULT_STATE = {
     },
     // 投手成績（自動計算）
     pitcherStats: {
-        home: { innings: 0, strikeouts: 0, runs: 0, pitchCount: 0, outs: 0 },
-        away: { innings: 0, strikeouts: 0, runs: 0, pitchCount: 0, outs: 0 }
+        home: { innings: 0, strikeouts: 0, walks: 0, runs: 0, pitchCount: 0, outs: 0 },
+        away: { innings: 0, strikeouts: 0, walks: 0, runs: 0, pitchCount: 0, outs: 0 }
     }
 };
 

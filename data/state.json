@@ -1,0 +1,753 @@
+{
+    "teams": {
+        "home": "北海道日本ハムファイターズ",
+        "away": "阪神タイガース"
+    },
+    "teamShortNames": {
+        "home": "日本ハム",
+        "away": "阪神"
+    },
+    "inning": {
+        "number": 2,
+        "half": "top"
+    },
+    "scores": {
+        "home": [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+        ],
+        "away": [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+        ]
+    },
+    "count": {
+        "ball": 0,
+        "strike": 0,
+        "out": 0
+    },
+    "runners": {
+        "first": false,
+        "second": false,
+        "third": false
+    },
+    "stats": {
+        "home": {
+            "r": 0,
+            "h": 1,
+            "e": 0
+        },
+        "away": {
+            "r": 0,
+            "h": 1,
+            "e": 0
+        }
+    },
+    "lineup": {
+        "home": [
+            "矢澤 宏太",
+            "奈良間 大己",
+            "大塚 瑠晏",
+            "エドポロ ケイン",
+            "万波 中正",
+            "野村 佑希",
+            "西川 遥輝",
+            "細川 凌平",
+            "田宮 裕涼"
+        ],
+        "away": [
+            "前川　右京",
+            "森下　翔太",
+            "キャム・ディベイニー",
+            "佐藤　輝明",
+            "濱田　太貴",
+            "坂本　誠志郎",
+            "髙寺　望夢",
+            "中川　勇斗",
+            "百﨑　蒼生"
+        ]
+    },
+    "positions": {
+        "home": [
+            "左",
+            "三",
+            "遊",
+            "中",
+            "右",
+            "二",
+            "指",
+            "一",
+            "捕"
+        ],
+        "away": [
+            "一",
+            "右",
+            "遊",
+            "三",
+            "指",
+            "捕",
+            "中",
+            "左",
+            "二"
+        ]
+    },
+    "currentBatter": {
+        "home": 5,
+        "away": 4
+    },
+    "atBatResults": {
+        "home": [
+            [
+                "flyout"
+            ],
+            [
+                "walk"
+            ],
+            [
+                "flyout"
+            ],
+            [
+                "single"
+            ],
+            [
+                "flyout"
+            ],
+            [],
+            [],
+            [],
+            []
+        ],
+        "away": [
+            [
+                "strikeout"
+            ],
+            [
+                "strikeout"
+            ],
+            [
+                "single"
+            ],
+            [
+                "flyout"
+            ],
+            [],
+            [],
+            [],
+            [],
+            []
+        ]
+    },
+    "resultHistory": [
+        {
+            "type": "atBat",
+            "team": "away",
+            "batterIndex": 0,
+            "result": "strikeout",
+            "runnersBefore": {
+                "first": false,
+                "second": false,
+                "third": false
+            },
+            "countBefore": {
+                "ball": 0,
+                "strike": 2,
+                "out": 0
+            },
+            "scoreBefore": {
+                "home": [
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0
+                ],
+                "away": [
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0
+                ]
+            },
+            "outsBefore": 0,
+            "pitcherStatsBefore": {
+                "home": {
+                    "innings": 0,
+                    "strikeouts": 0,
+                    "runs": 0,
+                    "pitchCount": 2,
+                    "outs": 0
+                },
+                "away": {
+                    "innings": 0,
+                    "strikeouts": 0,
+                    "runs": 0,
+                    "pitchCount": 0,
+                    "outs": 0
+                }
+            }
+        },
+        {
+            "type": "atBat",
+            "team": "away",
+            "batterIndex": 1,
+            "result": "strikeout",
+            "runnersBefore": {
+                "first": false,
+                "second": false,
+                "third": false
+            },
+            "countBefore": {
+                "ball": 1,
+                "strike": 2,
+                "out": 1
+            },
+            "scoreBefore": {
+                "home": [
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0
+                ],
+                "away": [
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0
+                ]
+            },
+            "outsBefore": 1,
+            "pitcherStatsBefore": {
+                "home": {
+                    "innings": 0.1,
+                    "strikeouts": 1,
+                    "runs": 0,
+                    "pitchCount": 6,
+                    "outs": 1
+                },
+                "away": {
+                    "innings": 0,
+                    "strikeouts": 0,
+                    "runs": 0,
+                    "pitchCount": 0,
+                    "outs": 0
+                }
+            }
+        },
+        {
+            "type": "atBat",
+            "team": "away",
+            "batterIndex": 2,
+            "result": "single",
+            "runnersBefore": {
+                "first": false,
+                "second": false,
+                "third": false
+            },
+            "countBefore": {
+                "ball": 1,
+                "strike": 1,
+                "out": 2
+            },
+            "scoreBefore": {
+                "home": [
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0
+                ],
+                "away": [
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0
+                ]
+            },
+            "outsBefore": 2,
+            "pitcherStatsBefore": {
+                "home": {
+                    "innings": 0.2,
+                    "strikeouts": 2,
+                    "runs": 0,
+                    "pitchCount": 8,
+                    "outs": 2
+                },
+                "away": {
+                    "innings": 0,
+                    "strikeouts": 0,
+                    "runs": 0,
+                    "pitchCount": 0,
+                    "outs": 0
+                }
+            }
+        },
+        {
+            "type": "atBat",
+            "team": "away",
+            "batterIndex": 3,
+            "result": "flyout",
+            "runnersBefore": {
+                "first": false,
+                "second": false,
+                "third": false
+            },
+            "countBefore": {
+                "ball": 0,
+                "strike": 0,
+                "out": 2
+            },
+            "scoreBefore": {
+                "home": [
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0
+                ],
+                "away": [
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0
+                ]
+            },
+            "outsBefore": 2,
+            "pitcherStatsBefore": {
+                "home": {
+                    "innings": 0.2,
+                    "strikeouts": 2,
+                    "runs": 0,
+                    "pitchCount": 8,
+                    "outs": 2
+                },
+                "away": {
+                    "innings": 0,
+                    "strikeouts": 0,
+                    "runs": 0,
+                    "pitchCount": 0,
+                    "outs": 0
+                }
+            }
+        },
+        {
+            "type": "atBat",
+            "team": "home",
+            "batterIndex": 0,
+            "result": "flyout",
+            "runnersBefore": {
+                "first": false,
+                "second": false,
+                "third": false
+            },
+            "countBefore": {
+                "ball": 0,
+                "strike": 0,
+                "out": 2
+            },
+            "scoreBefore": {
+                "home": [
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0
+                ],
+                "away": [
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0
+                ]
+            },
+            "outsBefore": 2,
+            "pitcherStatsBefore": {
+                "home": {
+                    "innings": 1,
+                    "strikeouts": 2,
+                    "runs": 0,
+                    "pitchCount": 8,
+                    "outs": 3
+                },
+                "away": {
+                    "innings": 0,
+                    "strikeouts": 0,
+                    "runs": 0,
+                    "pitchCount": 0,
+                    "outs": 0
+                }
+            }
+        },
+        {
+            "type": "atBat",
+            "team": "home",
+            "batterIndex": 1,
+            "result": "walk",
+            "runnersBefore": {
+                "first": false,
+                "second": false,
+                "third": false
+            },
+            "countBefore": {
+                "ball": 0,
+                "strike": 0,
+                "out": 2
+            },
+            "scoreBefore": {
+                "home": [
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0
+                ],
+                "away": [
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0
+                ]
+            },
+            "outsBefore": 2,
+            "pitcherStatsBefore": {
+                "home": {
+                    "innings": 1,
+                    "strikeouts": 2,
+                    "runs": 0,
+                    "pitchCount": 8,
+                    "outs": 3
+                },
+                "away": {
+                    "innings": 0.1,
+                    "strikeouts": 0,
+                    "runs": 0,
+                    "pitchCount": 0,
+                    "outs": 1
+                }
+            }
+        },
+        {
+            "type": "atBat",
+            "team": "home",
+            "batterIndex": 2,
+            "result": "flyout",
+            "runnersBefore": {
+                "first": true,
+                "second": false,
+                "third": false
+            },
+            "countBefore": {
+                "ball": 0,
+                "strike": 0,
+                "out": 2
+            },
+            "scoreBefore": {
+                "home": [
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0
+                ],
+                "away": [
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0
+                ]
+            },
+            "outsBefore": 2,
+            "pitcherStatsBefore": {
+                "home": {
+                    "innings": 1,
+                    "strikeouts": 2,
+                    "runs": 0,
+                    "pitchCount": 8,
+                    "outs": 3
+                },
+                "away": {
+                    "innings": 0.1,
+                    "strikeouts": 0,
+                    "runs": 0,
+                    "pitchCount": 0,
+                    "outs": 1
+                }
+            }
+        },
+        {
+            "type": "atBat",
+            "team": "home",
+            "batterIndex": 3,
+            "result": "single",
+            "runnersBefore": {
+                "first": true,
+                "second": false,
+                "third": false
+            },
+            "countBefore": {
+                "ball": 0,
+                "strike": 0,
+                "out": 2
+            },
+            "scoreBefore": {
+                "home": [
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0
+                ],
+                "away": [
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0
+                ]
+            },
+            "outsBefore": 2,
+            "pitcherStatsBefore": {
+                "home": {
+                    "innings": 1,
+                    "strikeouts": 2,
+                    "runs": 0,
+                    "pitchCount": 8,
+                    "outs": 3
+                },
+                "away": {
+                    "innings": 0.2,
+                    "strikeouts": 0,
+                    "runs": 0,
+                    "pitchCount": 0,
+                    "outs": 2
+                }
+            }
+        },
+        {
+            "type": "atBat",
+            "team": "home",
+            "batterIndex": 4,
+            "result": "flyout",
+            "runnersBefore": {
+                "first": true,
+                "second": true,
+                "third": false
+            },
+            "countBefore": {
+                "ball": 0,
+                "strike": 0,
+                "out": 2
+            },
+            "scoreBefore": {
+                "home": [
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0
+                ],
+                "away": [
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0
+                ]
+            },
+            "outsBefore": 2,
+            "pitcherStatsBefore": {
+                "home": {
+                    "innings": 1,
+                    "strikeouts": 2,
+                    "runs": 0,
+                    "pitchCount": 8,
+                    "outs": 3
+                },
+                "away": {
+                    "innings": 0.2,
+                    "strikeouts": 0,
+                    "runs": 0,
+                    "pitchCount": 0,
+                    "outs": 2
+                }
+            }
+        }
+    ],
+    "pitcher": {
+        "home": "達 孝太",
+        "away": "茨木　秀俊"
+    },
+    "pitcherStats": {
+        "home": {
+            "innings": 1,
+            "strikeouts": 2,
+            "runs": 0,
+            "pitchCount": 8,
+            "outs": 3
+        },
+        "away": {
+            "innings": 1,
+            "strikeouts": 0,
+            "runs": 0,
+            "pitchCount": 0,
+            "outs": 3
+        }
+    },
+    "lastResult": {
+        "type": "flyout",
+        "timestamp": 1770545105996
+    }
+}

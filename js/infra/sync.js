@@ -14,26 +14,24 @@ let broadcastChannel = null;
 export function setupBroadcastChannel(isAdminMode, onStateUpdateCallback, onResultCallback) {
     try {
         broadcastChannel = new BroadcastChannel(CHANNEL_NAME);
-        
-        // 管理モード以外（表示モードなど）の場合のみメッセージを受信して反映
-        if (!isAdminMode) {
-            broadcastChannel.onmessage = (event) => {
-                if (event.data && event.data.type === 'STATE_UPDATE') {
-                    console.log('📡 ブロードキャスト受信: 状態を更新します');
-                    if (onStateUpdateCallback) {
-                        onStateUpdateCallback(event.data.state);
-                    }
-                } else if (event.data && event.data.type === 'SHOW_RESULT') {
-                    console.log('📡 結果アニメーション受信:', event.data.result);
-                    if (onResultCallback) {
-                        onResultCallback(event.data.result);
-                    }
+
+        // 全ページで状態更新を受信（管理ページ間の同期にも必要）
+        // BroadcastChannelは自分自身には送信されないためループしない
+        broadcastChannel.onmessage = (event) => {
+            if (event.data && event.data.type === 'STATE_UPDATE') {
+                console.log('📡 ブロードキャスト受信: 状態を更新します');
+                if (onStateUpdateCallback) {
+                    onStateUpdateCallback(event.data.state);
                 }
-            };
-            console.log('✅ BroadcastChannel受信待機中（表示モード）');
-        } else {
-            console.log('✅ BroadcastChannel送信専用（管理モード）');
-        }
+            } else if (event.data && event.data.type === 'SHOW_RESULT') {
+                // 結果アニメーションは表示モードのみ
+                if (!isAdminMode && onResultCallback) {
+                    console.log('📡 結果アニメーション受信:', event.data.result);
+                    onResultCallback(event.data.result);
+                }
+            }
+        };
+        console.log('✅ BroadcastChannel受信待機中');
     } catch (e) {
         console.warn('⚠️ BroadcastChannel は利用できません:', e);
     }
@@ -62,10 +60,20 @@ export function broadcastState(state, isAdminMode) {
 
 /**
  * 結果イベントをブロードキャスト
- * @param {string} result 
- * @param {boolean} isAdminMode 
+ * BroadcastChannelに加え、stateにも埋め込む（API経由のOBS同期用）
+ * @param {string} result
+ * @param {boolean} isAdminMode
+ * @param {Object} state 現在のstate参照（lastResultを書き込むため）
  */
-export function broadcastResultEvent(result, isAdminMode) {
+export function broadcastResultEvent(result, isAdminMode, state) {
+    // stateにlastResultを埋め込む（APIポーリングで他ブラウザが検出できるように）
+    if (state && isAdminMode) {
+        state.lastResult = {
+            type: result,
+            timestamp: Date.now()
+        };
+    }
+
     if (broadcastChannel && isAdminMode) {
         broadcastChannel.postMessage({
             type: 'SHOW_RESULT',

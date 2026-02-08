@@ -147,7 +147,7 @@
   position: absolute;
   bottom: 30px;
   width: 420px; /* 少し幅広に */
-  height: 160px;
+  height: auto;
   background: var(--grad-dark-glass);
   backdrop-filter: blur(10px);
   border: 1px solid rgba(255,255,255,0.2);
@@ -236,6 +236,7 @@
 
 #pitcher-innings,
 #pitcher-strikeouts,
+#pitcher-walks,
 #pitcher-runs {
   font-family: var(--font-score);
   font-size: 22px;

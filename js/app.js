@@ -74,13 +74,27 @@ function checkPageMode() {
 }
 
 /**
- * 表示モード用：定期的に状態を同期（フォールバック）
+ * 表示モード用：定期的にAPIから状態を同期
+ * OBSなど別ブラウザからのアクセスでもリアルタイム反映される
  */
+let lastResultTimestamp = 0; // 結果アニメーション重複防止用
+
 function setupStorageSync() {
+    // 初期値を設定（既にstateにlastResultがあれば記録しておく）
+    if (State.state.lastResult && State.state.lastResult.timestamp) {
+        lastResultTimestamp = State.state.lastResult.timestamp;
+    }
+
     setInterval(async () => {
         await State.loadState();
         Render.updateDisplay(State.state, State.isAdminMode, State.isDisplayMode);
-    }, 2000);
+
+        // 新しい結果イベントがあればアニメーション表示
+        if (State.state.lastResult && State.state.lastResult.timestamp > lastResultTimestamp) {
+            lastResultTimestamp = State.state.lastResult.timestamp;
+            Render.showResultAnimation(State.state.lastResult.type);
+        }
+    }, 500);
 }
 
 // ==================== イベントリスナー ====================
@@ -89,6 +103,46 @@ function setupEventListeners() {
         const el = document.getElementById(id);
         if (el) el.addEventListener(event, handler);
     }
+
+    // 打順保存ボタン (admin-lineup.html)
+    addListener('btn-save-lineup', 'click', () => {
+        // 全selectから最新値を収集してstateに反映
+        ['away', 'home'].forEach(team => {
+            for (let i = 0; i < 9; i++) {
+                const nameEl = document.querySelector(`.lineup-input-name[data-team="${team}"][data-order="${i}"]`);
+                if (nameEl) State.state.lineup[team][i] = nameEl.value;
+                const posEl = document.querySelector(`.lineup-input-pos[data-team="${team}"][data-order="${i}"]`);
+                if (posEl) {
+                    if (!State.state.positions) State.state.positions = JSON.parse(JSON.stringify(Constants.DEFAULT_STATE.positions));
+                    State.state.positions[team][i] = posEl.value;
+                }
+            }
+            const pitcherEl = document.querySelector(`.lineup-input-pitcher[data-team="${team}"]`);
+            if (pitcherEl) {
+                if (!State.state.pitcher) State.state.pitcher = { home: '', away: '' };
+                const prevPitcher = State.state.pitcher[team];
+                State.state.pitcher[team] = pitcherEl.value;
+                // 投手が変わったら旧投手の成績をDB保存してからリセット
+                if (prevPitcher && prevPitcher !== pitcherEl.value) {
+                    savePitcherStatsToDB(team, prevPitcher);
+                    resetPitcherTodayStats(team);
+                }
+            }
+        });
+        updateAndSave();
+        // 保存完了フィードバック
+        const status = document.getElementById('save-status');
+        const btn = document.getElementById('btn-save-lineup');
+        if (status) {
+            status.textContent = '保存しました';
+            status.style.opacity = '1';
+            setTimeout(() => { status.style.opacity = '0'; }, 2000);
+        }
+        if (btn) {
+            btn.classList.add('saved');
+            setTimeout(() => { btn.classList.remove('saved'); }, 1000);
+        }
+    });
 
     // チーム名変更
     addListener('away-name', 'input', (e) => {
@@ -284,7 +338,7 @@ function setupEventListeners() {
             }
 
             GameLogic.recordAtBatResult(State.state, result);
-            Sync.broadcastResultEvent(result, State.isAdminMode);
+            Sync.broadcastResultEvent(result, State.isAdminMode, State.state);
             updateAndSave();
         });
     });
@@ -371,8 +425,14 @@ function handleLineupInput(e) {
     else if (e.target.classList.contains('lineup-input-pitcher')) {
         const team = e.target.dataset.team;
         if (!State.state.pitcher) State.state.pitcher = { home: '', away: '' };
+        const prevPitcher = State.state.pitcher[team];
         State.state.pitcher[team] = e.target.value;
-        Render.updateBottomStats(State.state, State.isDisplayMode); // 投手名変更の即時反映(Admin画面でBottomは出ないかもしれないが)
+        // 投手が変わったら旧投手の成績をDB保存してからリセット
+        if (prevPitcher && prevPitcher !== e.target.value) {
+            savePitcherStatsToDB(team, prevPitcher);
+            resetPitcherTodayStats(team);
+        }
+        Render.updateBottomStats(State.state, State.isDisplayMode);
         State.saveState();
     }
 }
@@ -385,6 +445,46 @@ function updateAndSave() {
 function nextBatter() {
     const team = State.state.inning.half === 'top' ? 'away' : 'home';
     State.state.currentBatter[team] = (State.state.currentBatter[team] + 1) % 9;
+}
+
+/**
+ * 投手交代前に現投手の成績をDBに保存
+ */
+async function savePitcherStatsToDB(team, pitcherName) {
+    const pitcherId = State.playerMap[pitcherName];
+    const stats = State.state.pitcherStats && State.state.pitcherStats[team];
+    if (!pitcherId || !stats) return;
+    // 成績が全て0なら保存しない
+    if (stats.innings === 0 && stats.strikeouts === 0 && stats.walks === 0 && stats.runs === 0 && stats.pitchCount === 0) return;
+    try {
+        await fetch('/api/game-pitcher-stats', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                game_id: gameId,
+                pitcher_id: pitcherId,
+                team: team,
+                innings_pitched: stats.innings,
+                strikeouts: stats.strikeouts,
+                walks: stats.walks,
+                runs_allowed: stats.runs,
+                pitch_count: stats.pitchCount
+            })
+        });
+        console.log('Pitcher stats saved for', pitcherName);
+    } catch (e) {
+        console.error('Failed to save pitcher stats', e);
+    }
+}
+
+/**
+ * 投手交代時に当日投手成績（IP, K, R, BB, 投球数, アウト数）をリセット
+ */
+function resetPitcherTodayStats(team) {
+    if (!State.state.pitcherStats) {
+        State.state.pitcherStats = JSON.parse(JSON.stringify(Constants.DEFAULT_STATE.pitcherStats));
+    }
+    State.state.pitcherStats[team] = { innings: 0, strikeouts: 0, walks: 0, runs: 0, pitchCount: 0, outs: 0 };
 }
 
 // Global variables for master data and selections (Moved to top)
@@ -446,11 +546,15 @@ function populateTeamSelects() {
     });
 
     // 初期値の設定 (保存された状態から復元)
+    if (!State.state.teamShortNames) State.state.teamShortNames = { home: '', away: '' };
+    let shortNamesUpdated = false;
     if (State.state.teams.away) {
         const awayTeam = allTeams.find(t => t.name === State.state.teams.away);
         if (awayTeam) {
             awaySelect.value = awayTeam.id;
             teamSelections.away = awayTeam.id;
+            State.state.teamShortNames.away = awayTeam.short_name || awayTeam.name;
+            shortNamesUpdated = true;
         }
     }
     if (State.state.teams.home) {
@@ -458,9 +562,15 @@ function populateTeamSelects() {
         if (homeTeam) {
             homeSelect.value = homeTeam.id;
             teamSelections.home = homeTeam.id;
+            State.state.teamShortNames.home = homeTeam.short_name || homeTeam.name;
+            shortNamesUpdated = true;
         }
     }
-    
+    // 略称を即座に保存（表示ページで使えるように）
+    if (shortNamesUpdated) {
+        State.saveState();
+    }
+
     // チーム選択時のイベントリスナー
     awaySelect.addEventListener('change', (e) => {
         teamSelections.away = e.target.value;
@@ -468,18 +578,22 @@ function populateTeamSelects() {
         const selectedTeam = allTeams.find(t => t.id === parseInt(e.target.value));
         if (selectedTeam) {
             State.state.teams.away = selectedTeam.name;
+            if (!State.state.teamShortNames) State.state.teamShortNames = { home: '', away: '' };
+            State.state.teamShortNames.away = selectedTeam.short_name || selectedTeam.name;
         }
         // 選手プルダウンを再生成
         Render.generateLineupInputs(State.state, allPlayers, teamSelections);
         updateAndSave();
     });
-    
+
     homeSelect.addEventListener('change', (e) => {
         teamSelections.home = e.target.value;
         // チーム名を更新
         const selectedTeam = allTeams.find(t => t.id === parseInt(e.target.value));
         if (selectedTeam) {
             State.state.teams.home = selectedTeam.name;
+            if (!State.state.teamShortNames) State.state.teamShortNames = { home: '', away: '' };
+            State.state.teamShortNames.home = selectedTeam.short_name || selectedTeam.name;
         }
         // 選手プルダウンを再生成
         Render.generateLineupInputs(State.state, allPlayers, teamSelections);
