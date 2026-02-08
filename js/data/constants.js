@@ -106,12 +106,13 @@ export const RESULT_LABELS = {
     'lineout': 'ライナー',
     'sacrifice': '犠打',
     'fc': '野選',
-    'dp': '併殺'
+    'dp': '併殺',
+    'sac_fly': '犠飛'
 };
 
 // 守備位置のリスト
 export const POSITIONS = [
-    '投', '捕', '一', '二', '三', '遊', '左', '中', '右', '指', '代'
+    'P', 'C', '1B', '2B', '3B', 'SS', 'LF', 'CF', 'RF', 'DH', 'PH'
 ];
 
 // LocalStorageキー

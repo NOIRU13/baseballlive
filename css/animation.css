@@ -80,18 +80,18 @@
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  width: 80%;
-  max-width: 1000px;
+  width: 90%;
+  max-width: 600px; /* 最大幅を制限 */
   background: rgba(0, 0, 0, 0.9);
   border: 4px solid var(--accent, #ffd700);
   border-radius: 16px;
-  padding: 40px;
+  padding: 30px 20px;
   z-index: 200;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 30px;
+  gap: 20px;
   box-shadow: 0 0 60px rgba(0, 0, 0, 0.9), inset 0 0 20px rgba(255, 215, 0, 0.2);
   opacity: 0;
   pointer-events: none;
@@ -99,13 +99,13 @@
 
 .lineup-change-title {
   font-family: var(--font-base, sans-serif);
-  font-size: 48px;
+  font-size: 36px; /* サイズを縮小 */
   color: var(--accent, #ffd700);
   text-transform: uppercase;
-  letter-spacing: 4px;
+  letter-spacing: 3px;
   border-bottom: 2px solid var(--accent, #ffd700);
-  padding-bottom: 10px;
-  margin-bottom: 20px;
+  padding-bottom: 8px;
+  margin-bottom: 10px;
   width: 100%;
   text-align: center;
   font-weight: bold;
@@ -114,25 +114,49 @@
 
 .lineup-change-details {
   font-family: var(--font-number, sans-serif);
-  font-size: 64px;
+  font-size: 48px; /* サイズを縮小 */
   color: #fff;
   text-align: center;
-  line-height: 1.4;
-  text-shadow: 4px 4px 0 #000;
+  line-height: 1.3;
+  text-shadow: 3px 3px 0 #000;
   width: 100%;
   display: flex;
   flex-direction: column;
-  gap: 15px;
+  gap: 12px;
+  overflow: hidden; /* はみ出し防止 */
 }
 
 .lineup-change-row {
-    white-space: nowrap;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden; /* 親コンテナからはみ出さないように */
+    margin-bottom: 8px; /* gapがあるので少し控えめに */
 }
 
+.change-label {
+    font-family: var(--font-base, sans-serif);
+    font-size: 24px;
+    color: #ffd700;
+    margin-bottom: 2px;
+    text-shadow: 0 0 5px rgba(0,0,0,0.8);
+    opacity: 0.9;
+}
+
+.change-content-row {
+    white-space: nowrap;
+    text-align: center;
+    /* JSで transform: scaleX(...) が適用される */
+    transform-origin: center;
+    will-change: transform;
+}
+
+/* アニメーション適用クラス */
 .lineup-change-animate {
    animation: slideInFade 5s forwards;
 }
-
 @keyframes slideInFade {
   0% { opacity: 0; transform: translate(-50%, -40%) scale(0.9); }
   10% { opacity: 1; transform: translate(-50%, -50%) scale(1.0); }
@@ -244,11 +268,11 @@
 
 /* アニメーションシーケンス */
 #change-overlay.active .change-line-small {
-    animation: changeSmallIn 1s cubic-bezier(0.2, 0.8, 0.2, 1) 0.5s forwards;
+    animation: changeSmallIn 2s cubic-bezier(0.2, 0.8, 0.2, 1) 0.5s forwards;
 }
 
 #change-overlay.active .change-line-large {
-    animation: changeLargeIn 2s cubic-bezier(0.1, 0.9, 0.2, 1) 1.2s forwards,
+    animation: changeLargeIn 3s cubic-bezier(0.1, 0.9, 0.2, 1) 1.5s forwards,
                changeGlitter 5s linear infinite;
 }
 
@@ -266,3 +290,132 @@
     0%, 100% { filter: drop-shadow(0 0 30px rgba(218, 165, 32, 0.6)) drop-shadow(8px 8px 0 #000); }
     50% { filter: drop-shadow(0 0 50px rgba(255, 215, 0, 0.9)) drop-shadow(8px 8px 0 #000); }
 }
+
+/* ==================== HOMERUN / GRANDSLAM / SAYONARA ANIMATIONS ==================== */
+
+#special-anim-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 500;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    opacity: 0;
+    transition: opacity 0.5s;
+}
+
+#special-anim-overlay.active {
+    opacity: 1;
+}
+
+.fireworks-container {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    top: 0;
+    left: 0;
+    pointer-events: none;
+}
+
+.firework {
+    position: absolute;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    animation: fireworkExplode 1.2s ease-out forwards;
+}
+
+@keyframes fireworkExplode {
+    0% { transform: scale(0); opacity: 1; }
+    50% { opacity: 1; }
+    100% { transform: scale(30); opacity: 0; }
+}
+
+/* Sparkles for fireworks */
+.sparkle {
+    position: absolute;
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    animation: sparkleMove 1s ease-out forwards;
+}
+
+@keyframes sparkleMove {
+    0% { transform: translate(0, 0) scale(1); opacity: 1; }
+    100% { transform: translate(var(--tx), var(--ty)) scale(0); opacity: 0; }
+}
+
+
+.anim-text-large {
+    font-family: 'Oswald', sans-serif;
+    font-size: 15rem;
+    font-weight: 900;
+    text-align: center;
+    text-transform: uppercase;
+    line-height: 1;
+    z-index: 10;
+    opacity: 0;
+    white-space: nowrap;
+    margin-bottom: 20px;
+}
+
+.anim-text-sub {
+    font-family: 'Oswald', sans-serif;
+    font-size: 6rem;
+    font-weight: 700;
+    opacity: 0;
+    z-index: 10;
+    margin-top: -40px;
+    animation: textPopIn 4.5s cubic-bezier(0.22, 1, 0.36, 1) 0.5s forwards;
+}
+
+/* HR Gold */
+.text-gold {
+    background: linear-gradient(to bottom, #fff7cc 0%, #ffd700 30%, #b8860b 80%, #ffd700 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    filter: drop-shadow(0 0 40px rgba(255, 215, 0, 0.8)) drop-shadow(4px 4px 0px rgba(0,0,0,0.5));
+    animation: textPopIn 4s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+/* Grand Slam Rainbow */
+.text-rainbow {
+    background: linear-gradient(45deg, #ff0000, #ff7f00, #ffff00, #00ff00, #0000ff, #4b0082, #9400d3);
+    background-size: 300% 300%;
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    filter: drop-shadow(0 0 30px rgba(255, 255, 255, 0.9)) drop-shadow(4px 4px 0px rgba(0,0,0,0.5));
+    animation: textPopIn 5s cubic-bezier(0.22, 1, 0.36, 1) forwards, rainbowMove 2s linear infinite;
+}
+
+/* Sayonara */
+.text-sayonara {
+    background: linear-gradient(to bottom, #ff0055, #ff00aa);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    filter: drop-shadow(0 0 40px rgba(255, 0, 85, 0.8)) drop-shadow(4px 4px 0px rgba(0,0,0,0.5));
+    animation: textPopIn 6s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+@keyframes rainbowMove {
+    0% { background-position: 0% 50%; }
+    100% { background-position: 100% 50%; }
+}
+
+@keyframes textPopIn {
+    0% { opacity: 0; transform: scale(0) rotate(-15deg); }
+    15% { opacity: 1; transform: scale(1.2) rotate(5deg); }
+    25% { transform: scale(1) rotate(0deg); }
+    85% { opacity: 1; transform: scale(1); }
+    100% { opacity: 0; transform: scale(1.5); }
+}
+

@@ -177,11 +177,18 @@ export function updateControlPanel(state, isAdminMode) {
 }
 
 /**
- * 投手成績リストを更新 (Admin用)
+ * 投手成績リストを更新 (Admin用 - Table Layout)
  */
 function updatePitcherStatsList(state, team) {
-    const container = document.getElementById(`pitcher-stats-${team}-list`);
-    if (!container) return; // Not in admin mode or missing container
+    const tbody = document.getElementById(`pitcher-table-body-${team}`);
+    if (!tbody) return; // Not in admin mode or missing container
+
+    // Update Team Label
+    const labelEl = document.getElementById(`pitcher-log-label-${team}`);
+    if (labelEl) {
+        const teamName = (state.teamShortNames && state.teamShortNames[team]) ? state.teamShortNames[team] : (team === 'away' ? 'AWAY' : 'HOME');
+        labelEl.textContent = teamName;
+    }
 
     // Get ordered list of pitchers
     let pitchers = (state.pitcherHistory && state.pitcherHistory[team]) ? [...state.pitcherHistory[team]] : [];
@@ -194,87 +201,144 @@ function updatePitcherStatsList(state, team) {
     
     // If no pitchers, show empty message
     if (pitchers.length === 0) {
-        container.innerHTML = '<div style="color:#555; font-size:10px;">(登板なし)</div>';
+        tbody.innerHTML = '<tr><td colspan="6" style="color:#555; font-size:10px; text-align:center;">(登板なし)</td></tr>';
         return;
     }
 
     // Check existing rows to decide whether to rebuild
-    const existingRows = Array.from(container.querySelectorAll('.pitcher-stat-row'));
+    const existingRows = Array.from(tbody.querySelectorAll('.pitcher-stat-row'));
     const existingNames = existingRows.map(r => r.dataset.pitcher);
 
     // If list changed (length or content), rebuild
     if (existingNames.join(',') !== pitchers.join(',')) {
-        container.innerHTML = ''; // Rebuild
+        tbody.innerHTML = ''; // Rebuild
         pitchers.forEach(name => {
-            const row = createPitcherStatRow(team, name);
-            container.appendChild(row);
+            const row = createPitcherStatRowTable(team, name);
+            tbody.appendChild(row);
         });
     }
 
     // Now update values
     pitchers.forEach(name => {
-        const stats = (state.pitcherStatsHistory && state.pitcherStatsHistory[name]) 
+        let stats = (state.pitcherStatsHistory && state.pitcherStatsHistory[name]) 
             ? state.pitcherStatsHistory[name] 
-            : { innings: 0, strikeouts: 0, runs: 0, earnedRuns: 0 };
+            : null;
+            
+        // If history is missing but it's the current pitcher, use current stats
+        if (!stats && name === currentPitcher && state.pitcherStats && state.pitcherStats[team]) {
+            stats = state.pitcherStats[team];
+        }
+        
+        if (!stats) stats = { innings: 0, strikeouts: 0, runs: 0, earnedRuns: 0, walks: 0 };
             
         // Find row safely without selector injection issues
-        const row = Array.from(container.children).find(el => el.dataset.pitcher === name);
+        const row = Array.from(tbody.children).find(el => el.dataset.pitcher === name);
         if (!row) return;
 
-        // Highlight current pitcher
+         // Highlight current pitcher
         if (name === currentPitcher) {
             row.style.background = 'rgba(255, 215, 0, 0.1)';
-            row.style.border = '1px solid rgba(255, 215, 0, 0.3)';
         } else {
-            row.style.background = 'rgba(255, 255, 255, 0.05)';
-            row.style.border = '1px solid transparent';
+            row.style.background = 'transparent';
         }
 
         // Update inputs if not focused
         updateInputIfNotFocused(row, 'innings', stats.innings !== undefined ? stats.innings : 0);
         updateInputIfNotFocused(row, 'k', stats.strikeouts !== undefined ? stats.strikeouts : 0);
+        updateInputIfNotFocused(row, 'bb', stats.walks !== undefined ? stats.walks : 0);
         updateInputIfNotFocused(row, 'runs', stats.runs !== undefined ? stats.runs : 0);
         updateInputIfNotFocused(row, 'er', stats.earnedRuns !== undefined ? stats.earnedRuns : 0);
     });
+    
+    // Add "Add Pitcher" Row
+    const addRow = document.createElement('tr');
+    const tdAdd = document.createElement('td');
+    tdAdd.colSpan = 6;
+    tdAdd.style.padding = '5px';
+    tdAdd.style.textAlign = 'center';
+    tdAdd.style.background = 'rgba(255,255,255,0.05)';
+    
+    const container = document.createElement('div');
+    container.style.display = 'flex';
+    container.style.gap = '5px';
+    container.style.justifyContent = 'center';
+    container.style.alignItems = 'center';
+    
+    const select = document.createElement('select');
+    select.id = `add-pitcher-select-${team}`;
+    select.style.flex = '1';
+    select.style.maxWidth = '120px';
+    select.style.fontSize = '10px';
+    select.style.padding = '2px';
+    select.style.background = '#222';
+    select.style.color = '#fff';
+    select.style.border = '1px solid #555';
+    
+    // Populate with all players for the team
+    // Need access to allPlayers list. If not available globally in render.js, handle differently.
+    // Ideally pass players list to updatePitcherStatsList or use a global if available (window.allPlayersMap?).
+    // For now, let's try to assume we can get players from fetching or if they are in state. 
+    // State doesn't usually hold all players list (just active lineup).
+    // Allow manual text entry if select is hard, OR assume app.js calls this with players?
+    // Let's us a simple text input for now as fallback or try to find players in DOM?
+    // Actually, app.js has allPlayers. We can dispatch event to populate this?
+    // Or simpler: use a text input + button for "Manual Add".
+    
+    // Changing to Text Input for simplicity and robustness if full roster isn't in state
+    const inputName = document.createElement('input');
+    inputName.type = 'text';
+    inputName.id = `add-pitcher-name-${team}`;
+    inputName.placeholder = '選手名追加...';
+    inputName.style.flex = '1';
+    inputName.style.fontSize = '11px';
+    inputName.style.padding = '2px';
+    inputName.style.background = '#222';
+    inputName.style.color = '#fff';
+    inputName.style.border = '1px solid #555';
+    inputName.style.maxWidth = '100px';
+
+    const btnAdd = document.createElement('button');
+    btnAdd.textContent = '+';
+    btnAdd.className = 'btn-add-pitcher';
+    btnAdd.dataset.team = team;
+    btnAdd.style.cursor = 'pointer';
+    btnAdd.style.padding = '2px 8px';
+    btnAdd.style.background = '#3498db';
+    btnAdd.style.border = 'none';
+    btnAdd.style.color = '#fff';
+    btnAdd.style.borderRadius = '2px';
+
+    container.appendChild(inputName);
+    container.appendChild(btnAdd);
+    tdAdd.appendChild(container);
+    addRow.appendChild(tdAdd);
+    tbody.appendChild(addRow);
 }
 
-function createPitcherStatRow(team, name) {
-    const row = document.createElement('div');
+function createPitcherStatRowTable(team, name) {
+    const row = document.createElement('tr');
     row.className = 'pitcher-stat-row';
     row.dataset.pitcher = name;
     row.dataset.team = team;
-    row.style.display = 'flex';
-    row.style.alignItems = 'center';
-    row.style.marginBottom = '4px';
-    row.style.padding = '2px';
-    row.style.borderRadius = '3px';
-    row.style.fontSize = '11px';
-    row.style.gap = '4px';
+    row.style.borderBottom = '1px solid #333';
 
     // Name (Truncate if long)
-    const nameSpan = document.createElement('span');
-    nameSpan.textContent = name;
-    nameSpan.style.width = '70px'; // Slightly larger
-    nameSpan.style.whiteSpace = 'nowrap';
-    nameSpan.style.overflow = 'hidden';
-    nameSpan.style.textOverflow = 'ellipsis';
-    nameSpan.style.textAlign = 'left';
-    nameSpan.title = name;
-    row.appendChild(nameSpan);
+    const tdName = document.createElement('td');
+    tdName.textContent = name;
+    tdName.style.padding = '2px';
+    tdName.style.whiteSpace = 'nowrap';
+    tdName.style.overflow = 'hidden';
+    tdName.style.textOverflow = 'ellipsis';
+    tdName.style.maxWidth = '100px';
+    tdName.title = name;
+    row.appendChild(tdName);
 
     // Inputs
-    ['innings', 'k', 'runs', 'er'].forEach(stat => {
-        const wrap = document.createElement('div');
-        wrap.style.display = 'flex';
-        wrap.style.flexDirection = 'column';
-        wrap.style.alignItems = 'center';
-        
-        const label = document.createElement('span');
-        label.style.fontSize = '8px';
-        label.style.color = '#aaa';
-        label.style.lineHeight = '1';
-        label.textContent = getStatLabel(stat);
-        
+    ['innings', 'k', 'bb', 'runs', 'er'].forEach(stat => {
+        const td = document.createElement('td');
+        td.style.padding = '1px';
+        td.style.textAlign = 'center';
+
         const input = document.createElement('input');
         input.type = 'number';
         input.step = stat === 'innings' ? '0.1' : '1';
@@ -282,32 +346,36 @@ function createPitcherStatRow(team, name) {
         input.dataset.team = team;
         input.dataset.pitcher = name;
         input.dataset.stat = stat;
-        input.style.width = '32px';
+        input.style.width = '100%';
+        input.style.minWidth = stat === 'innings' ? '40px' : '30px'; 
         input.style.background = '#222';
         input.style.color = '#fff';
         input.style.border = '1px solid #444';
         input.style.borderRadius = '2px';
-        input.style.padding = '2px';
-        input.style.textAlign = 'right';
-        input.style.fontSize = '12px';
+        input.style.padding = '2px 0'; // Vertical padding
+        input.style.textAlign = 'center';
+        input.style.fontSize = '11px';
+        input.style.boxSizing = 'border-box'; // Ensure width includes padding/border
 
-        wrap.appendChild(label);
-        wrap.appendChild(input);
-        row.appendChild(wrap);
+        td.appendChild(input);
+        row.appendChild(td);
     });
 
     return row;
 }
 
 function getStatLabel(stat) {
-    const map = { innings: '回', k: '振', runs: '失', er: '責' };
+    const map = { innings: '回', k: '振', bb: '球', runs: '失', er: '責' };
     return map[stat] || stat;
 }
 
 function updateInputIfNotFocused(row, stat, value) {
     const input = row.querySelector(`input[data-stat="${stat}"]`);
-    if (input && document.activeElement !== input) {
-        input.value = value;
+    if (input) {
+        // If focused, don't update to avoid interrupting typing
+        if (document.activeElement !== input) {
+            input.value = value;
+        }
     }
 }
 
@@ -340,7 +408,7 @@ export function updateBottomStats(state, isDisplayMode) {
         let pitcherInLineup = false;
         if (state.positions && state.positions[defenseTeam]) {
             for (let i = 0; i < 9; i++) {
-                if (state.positions[defenseTeam][i] === '投') {
+                if (state.positions[defenseTeam][i] === 'P') {
                     pitcherName = state.lineup[defenseTeam][i] || '投手';
                     pitcherInLineup = true;
                     break;
@@ -476,15 +544,22 @@ async function updateSeasonStats(batterName, pitcherName, state) {
             dbStats = lastPitcherDbStats;
         }
 
-        // 当日成績（state.pitcherStats は現在登板中の投手＝pitcherNameと仮定）
-        // もしリリーフ画面などで別の投手を見ている場合は todayStats は空にすべきだが、
-        // ここでは updateBottomStats が「現在の投手」を表示している前提。
-        const pStats = state.pitcherStats ? state.pitcherStats[defenseTeam] : { innings: 0, runs: 0, strikeouts: 0 };
-        const today = {
-            ip: pStats.innings || 0,
-            er: pStats.runs || 0,
-            k: pStats.strikeouts || 0
-        };
+        // 当日成績: Historyがあればそちらを優先（手動編集対応）
+        let today = { ip: 0, er: 0, k: 0 };
+        const historyStats = (state.pitcherStatsHistory && pitcherName) ? state.pitcherStatsHistory[pitcherName] : null;
+        
+        if (historyStats) {
+             today.ip = historyStats.innings || 0;
+             // earnedRunsを優先的に使用（エラーによる得点は自責点に含めない）
+             today.er = historyStats.earnedRuns !== undefined ? historyStats.earnedRuns : 0;
+             today.k = historyStats.strikeouts || 0;
+        } else if (state.pitcherStats && state.pitcherStats[defenseTeam]) {
+             // Fallback to active game state
+             const pStats = state.pitcherStats[defenseTeam];
+             today.ip = pStats.innings || 0;
+             today.er = pStats.earnedRuns !== undefined ? pStats.earnedRuns : 0;
+             today.k = pStats.strikeouts || 0;
+        }
 
         const merged = mergePitcherStats(dbStats, today);
 
@@ -670,7 +745,7 @@ export function updateLineupDisplay(state, isAdminMode) {
                 // Only show P and Position if pitcherName is present
                 if (pitcherName) {
                     pitcherDiv.innerHTML = '<span class="order-num">P</span>' +
-                        '<span class="player-pos pos-pitcher">投</span>' +
+                        '<span class="player-pos pos-pitcher">P</span>' +
                         '<span class="player-name">' + pitcherName + '</span>';
                     container.appendChild(pitcherDiv);
                 }
@@ -693,11 +768,11 @@ export function updateLineupDisplay(state, isAdminMode) {
  * 守備位置に応じたクラスを返す
  */
 function getPositionClass(pos) {
-    if (pos === '投') return 'pos-pitcher';
-    if (pos === '捕') return 'pos-catcher';
-    if (['一', '二', '三', '遊'].includes(pos)) return 'pos-infielder';
-    if (['左', '中', '右'].includes(pos)) return 'pos-outfielder';
-    if (['指', 'DH'].includes(pos)) return 'pos-dh';
+    if (pos === 'P') return 'pos-pitcher';
+    if (pos === 'C') return 'pos-catcher';
+    if (['1B', '2B', '3B', 'SS'].includes(pos)) return 'pos-infielder';
+    if (['LF', 'CF', 'RF'].includes(pos)) return 'pos-outfielder';
+    if (['DH', 'PH'].includes(pos)) return 'pos-dh';
     return '';
 }
 
@@ -838,17 +913,8 @@ export function generateLineupInputs(state, players = [], teamSelections = {away
                         opt.selected = true;
                     }
                     posSelect.appendChild(opt);
-                posSelect.appendChild(opt);
                 });
                 row.appendChild(posSelect);
-                
-                // 交代ボタン
-                const subBtn = document.createElement('button');
-                subBtn.className = 'btn-sub-player';
-                subBtn.textContent = '交代';
-                subBtn.dataset.team = team;
-                subBtn.dataset.order = i;
-                row.appendChild(subBtn);
                 
                 container.appendChild(row);
             }
@@ -884,14 +950,6 @@ export function generateLineupInputs(state, players = [], teamSelections = {away
             pPos.style.fontSize = '11px';
             pPos.style.color = '#ffd700';
             pRow.appendChild(pPos);
-            
-            // 交代ボタン(P)
-            const subBtnP = document.createElement('button');
-            subBtnP.className = 'btn-sub-player';
-            subBtnP.textContent = '交代';
-            subBtnP.dataset.team = team;
-            subBtnP.dataset.order = 'pitcher';
-            pRow.appendChild(subBtnP);
             
             container.appendChild(pRow);
             
@@ -1012,6 +1070,33 @@ function adjustTextScale() {
     });
 }
 
+function adjustChangeTextScale() {
+    const rows = document.querySelectorAll('.change-content-row');
+    rows.forEach(el => {
+        // 親要素の幅を取得 (.lineup-change-row または .lineup-change-overlay)
+        // .lineup-change-row のスタイルを確認する必要あり
+        const container = el.parentElement; 
+        if (!container) return;
+
+        const containerWidth = container.clientWidth;
+        if (containerWidth === 0) return; // 表示されていない場合
+
+        // スタイルリセット
+        el.style.transform = 'none';
+        el.style.display = 'inline-block';
+        el.style.whiteSpace = 'nowrap';
+        
+        const textWidth = el.scrollWidth;
+
+        if (textWidth > containerWidth) {
+            const scale = containerWidth / textWidth;
+            const safeScale = scale * 0.95; // マージン
+            el.style.transformOrigin = 'center';
+            el.style.transform = `scaleX(${safeScale})`;
+        }
+    });
+}
+
 /**
  * 選手交代アニメーション表示
  */
@@ -1051,27 +1136,33 @@ export function showLineupAnimation(changes) {
     if (pitcherChanges.length > 0) {
         // Just show first pitcher change for simplicity or loop
         pitcherChanges.forEach(c => {
-             messageHtml += `<div class="lineup-change-row">PITCHER CHANGE<br>${c.oldName || '---'} <span class="change-arrow">▶</span> ${c.newName}</div>`;
+             messageHtml += `<div class="lineup-change-row"><div class="change-label">PITCHER CHANGE</div><div class="change-content-row">${c.oldName || '---'} <span class="change-arrow">▶</span> ${c.newName}</div></div>`;
         });
     }
     
-    // Substitution messages removed as per request
-    /*
+    // Substitution messages enabled
     if (batterChanges.length > 0) {
         batterChanges.forEach(c => {
-             messageHtml += `<div class="lineup-change-row">SUBSTITUTION<br>${c.oldName || '---'} <span class="change-arrow">▶</span> ${c.newName}</div>`;
+             // 守備位置も表示
+             const pos = c.pos || '';
+             messageHtml += `<div class="lineup-change-row"><div class="change-label">PLAYER CHANGE</div><div class="change-content-row"><span style="color: #ffd700; margin-right: 8px;">${pos}</span>${c.oldName || '---'} <span class="change-arrow">▶</span> ${c.newName}</div></div>`;
         });
     }
-    */
     
-    if (posChanges.length > 0 && messageHtml === '') {
-         messageHtml += `<div class="lineup-change-row">DEFENSIVE CHANGE</div>`;
+    if (posChanges.length > 0) {
+         // Show specific position change details if possible, or generic
+         posChanges.forEach(c => {
+             messageHtml += `<div class="lineup-change-row"><div class="change-label">POSITION CHANGE</div><div class="change-content-row">${c.name} : ${c.oldPos || '-'} <span class="change-arrow">▶</span> ${c.newPos}</div></div>`;
+         });
     }
 
     if (messageHtml === '') return; // No meaningful message
 
     detailsEl.innerHTML = messageHtml;
     
+    // Apply Scaling
+    adjustChangeTextScale();
+
     // Reset Animation
     overlay.classList.remove('lineup-change-animate');
     void overlay.offsetWidth; // Force Reflow
@@ -1187,16 +1278,18 @@ export function updateScoreLog(state) {
         }
     }
     
-    // Render Away logs
-    awayLogs.forEach(content => {
+    // Render Away logs (Latest 3)
+    const displayAwayLogs = awayLogs.slice(-3);
+    displayAwayLogs.forEach(content => {
         const el = document.createElement('div');
         el.className = 'score-log-item compact';
         el.textContent = content;
         awayContainer.appendChild(el);
     });
 
-    // Render Home logs
-    homeLogs.forEach(content => {
+    // Render Home logs (Latest 3)
+    const displayHomeLogs = homeLogs.slice(-3);
+    displayHomeLogs.forEach(content => {
         const el = document.createElement('div');
         el.className = 'score-log-item compact';
         el.textContent = content;
@@ -1248,11 +1341,11 @@ function parseScoreLog(log) {
  */
 export function updatePitcherRelay(state) {
     // 新しいHTML構造に対応
-    const awayPanel = document.getElementById('away-pitcher-panel');
-    const homePanel = document.getElementById('home-pitcher-panel');
+    const awayList = document.getElementById('away-pitcher-list');
+    const homeList = document.getElementById('home-pitcher-list');
     
     // 新構造が無い場合は旧構造互換（フォールバック）
-    if (!awayPanel || !homePanel) {
+    if (!awayList || !homeList) {
         updatePitcherRelayLegacy(state);
         return;
     }
@@ -1262,7 +1355,8 @@ export function updatePitcherRelay(state) {
     
     // 両チームの投手情報を更新
     ['away', 'home'].forEach(team => {
-        const panel = team === 'away' ? awayPanel : homePanel;
+        const listContainer = team === 'away' ? awayList : homeList;
+        const panel = team === 'away' ? document.getElementById('away-pitcher-panel') : document.getElementById('home-pitcher-panel');
         const isDefending = team === defendingTeam;
         
         // チーム名ラベルを更新
@@ -1274,66 +1368,80 @@ export function updatePitcherRelay(state) {
             teamLabel.textContent = teamName;
         }
         
-        // 先発投手名を取得（startingPitcherから）
+        // 全投手リストを作成（先発 + リリーフ）
         const starterName = state.startingPitcher ? (state.startingPitcher[team] || '') : '';
+        const historyNames = state.pitcherHistory && state.pitcherHistory[team] ? state.pitcherHistory[team] : [];
+        
+        let allPitchers = [];
+        if (starterName) allPitchers.push(starterName);
+        // 重複チェックしつつ結合
+        historyNames.forEach(name => {
+            if (!allPitchers.includes(name)) {
+                allPitchers.push(name);
+            }
+        });
+        
         // 現在の投手名を取得
         const currentPitcherName = state.pitcher ? (state.pitcher[team] || '') : '';
         
-        // 先発投手を表示
-        const starterEntry = document.getElementById(`${team}-starter-entry`);
-        const starterNameEl = document.getElementById(`${team}-starter-name`);
-        
-        if (starterNameEl) {
-            // 先発投手が設定されている場合のみ表示
-            starterNameEl.textContent = starterName || '-';
+        // 現在の投手がリストにない場合（念のため）
+        if (currentPitcherName && !allPitchers.includes(currentPitcherName)) {
+            allPitchers.push(currentPitcherName);
         }
         
-        if (starterEntry) {
-            // 先発が現在もマウンドにいる場合
-            const starterOnMound = isDefending && starterName && starterName === currentPitcherName;
-            starterEntry.classList.toggle('on-mound', starterOnMound);
-            
-            // 先発が未設定の場合は非表示
-            starterEntry.style.display = starterName ? 'flex' : 'none';
-        }
-        
-        // リリーフ投手を表示（pitcherHistoryから）
-        const relayContainer = document.getElementById(`${team}-relay-container`);
-        const reliefSection = document.getElementById(`${team}-relief-section`);
-        
-        if (relayContainer && reliefSection) {
-            relayContainer.innerHTML = '';
-            
-            // 投手交代履歴から全てのリリーフ投手を表示（登板順 = 配列の順番）
-            const pitcherHistory = state.pitcherHistory ? (state.pitcherHistory[team] || []) : [];
-            
-            if (pitcherHistory.length > 0) {
-                // リリーフがいる場合はセクションを表示
-                reliefSection.classList.add('has-relievers');
-                
-                pitcherHistory.forEach(reliefPitcher => {
-                    const reliefItem = document.createElement('div');
-                    reliefItem.className = 'relief-pitcher-item';
-                    
-                    // 現在守備中のチームで、かつ現在の投手と一致する場合はアクティブ表示
-                    if (isDefending && reliefPitcher === currentPitcherName) {
-                        reliefItem.classList.add('on-mound');
-                    }
-                    
-                    reliefItem.textContent = reliefPitcher;
-                    
-                    relayContainer.appendChild(reliefItem);
-                });
-            } else {
-                // リリーフがいない場合はセクションを非表示
-                reliefSection.classList.remove('has-relievers');
-            }
-        }
+        // リストをクリア
+        listContainer.innerHTML = '';
         
         // パネル自体の表示/非表示
-        // 投手がセットされていない場合は控えめに表示
-        const hasContent = starterName || (state.pitcherHistory && state.pitcherHistory[team] && state.pitcherHistory[team].length > 0);
+        const hasContent = allPitchers.length > 0;
         panel.style.opacity = hasContent ? '1' : '0.3';
+        
+        if (hasContent) {
+            allPitchers.forEach(name => {
+                const item = document.createElement('div');
+                item.className = 'pitcher-entry';
+                
+                // 名前要素
+                const nameSpan = document.createElement('span');
+                nameSpan.className = 'pitcher-name';
+                nameSpan.textContent = name;
+                
+                // Stats取得
+                let stats = { innings: 0, runs: 0, earnedRuns: 0 };
+                
+                // 1. Historyから取得
+                if (state.pitcherStatsHistory && state.pitcherStatsHistory[name]) {
+                    const h = state.pitcherStatsHistory[name];
+                    stats.innings = h.innings || 0;
+                    stats.runs = h.earnedRuns !== undefined ? h.earnedRuns : (h.runs || 0); // 失点or自責点 (User said "Runs Allowed", using Runs for now, actually user said "何失点" which is Runs)
+                    stats.runs = h.runs || 0;
+                }
+                
+                // 2. 現在の投手なら、現在のStatsで上書き (最新情報)
+                if (name === currentPitcherName && state.pitcherStats && state.pitcherStats[team]) {
+                    const c = state.pitcherStats[team];
+                    stats.innings = c.innings || 0;
+                    stats.runs = c.runsFromLog !== undefined ? c.runsFromLog : (c.runs || 0);
+                }
+                
+                // フォーマット
+                const ip = stats.innings.toFixed(1).replace('.0', ''); // 整数なら小数なし
+                const runs = stats.runs;
+                
+                const statsSpan = document.createElement('span');
+                statsSpan.className = 'pitcher-stats';
+                statsSpan.textContent = `${ip}回 ${runs}失`;
+                
+                // 現在マウンドにいる場合
+                if (isDefending && name === currentPitcherName) {
+                    item.classList.add('on-mound');
+                }
+                
+                item.appendChild(nameSpan);
+                item.appendChild(statsSpan);
+                listContainer.appendChild(item);
+            });
+        }
     });
 }
 
@@ -1506,8 +1614,48 @@ function animateLineupRows(team, delayStart = 0, direction = 'left') {
     });
 }
 
-// ... (existing playChangeAnimation)
-
+/**
+ * チェンジアニメーション再生
+ */
+export function playChangeAnimation() {
+    let overlay = document.getElementById('change-overlay');
+    
+    // オーバーレイが存在しない場合は作成
+    if (!overlay) {
+        overlay = document.createElement('div');
+        overlay.id = 'change-overlay';
+        
+        const content = document.createElement('div');
+        content.id = 'change-content';
+        
+        const smallLine = document.createElement('div');
+        smallLine.className = 'change-line-small';
+        smallLine.textContent = 'CHANGE';
+        
+        const largeLine = document.createElement('div');
+        largeLine.className = 'change-line-large';
+        largeLine.textContent = 'INNING';
+        
+        content.appendChild(smallLine);
+        content.appendChild(largeLine);
+        overlay.appendChild(content);
+        
+        document.body.appendChild(overlay);
+    }
+    
+    // アニメーションリセット
+    overlay.classList.remove('active');
+    void overlay.offsetWidth; // Force Reflow
+    overlay.classList.add('active');
+    
+    // アニメーション終了後に非表示 (CSSのdurationに合わせて調整)
+    // changeLargeIn: 3s + 1.5s delay = 4.5s
+    // changeGlitter: infinite
+    // ここでは7秒程度表示してから消す
+    setTimeout(() => {
+        overlay.classList.remove('active');
+    }, 8000); // 少し長めに
+}
 /**
  * 得点ログをパースしてオブジェクトに変換
  * (Note: Existing parseScoreLog is kept but maybe not used by at-bat-log logic directly if we use state.atBatLog)
@@ -1572,7 +1720,7 @@ export function updateAtBatLogTable(state) {
             {v:'strikeout', t:'三振'}, {v:'groundout', t:'ゴロ'}, {v:'flyout', t:'フライ'}, {v:'lineout', t:'ライナー'},
             {v:'single', t:'単打'}, {v:'double', t:'二塁打'}, {v:'triple', t:'三塁打'}, {v:'homerun', t:'本塁打'},
             {v:'walk', t:'四球'}, {v:'hbp', t:'死球'}, {v:'error', t:'エラー'},
-            {v:'sacrifice', t:'犠打'}, {v:'fc', t:'野選'}, {v:'dp', t:'併殺'}
+            {v:'sacrifice', t:'犠打'}, {v:'sac_fly', t:'犠飛'}, {v:'fc', t:'野選'}, {v:'dp', t:'併殺'}
         ];
         
         resultOptions.forEach(opt => {
@@ -1639,3 +1787,128 @@ function populateSimpleOptions(select, items, current) {
          select.appendChild(opt);
     }
 }
+
+
+/**
+ * スペシャルアニメーション（HR, 満塁HR, サヨナラ）
+ * @param {string} type 'homerun', 'grandslam', 'sayonara'
+ */
+export function playSpecialAnimation(type) {
+    let overlay = document.getElementById('special-anim-overlay');
+    if (!overlay) {
+        overlay = document.createElement('div');
+        overlay.id = 'special-anim-overlay';
+        document.body.appendChild(overlay);
+    }
+    
+    // Clear Content
+    overlay.innerHTML = '';
+    
+    // Create Text Container
+    const textContainer = document.createElement('div');
+    textContainer.style.display = 'flex';
+    textContainer.style.flexDirection = 'column';
+    textContainer.style.alignItems = 'center';
+    
+    const mainText = document.createElement('div');
+    mainText.className = 'anim-text-large';
+    
+    // Configure based on type
+    if (type === 'homerun') {
+        const span = document.createElement('span');
+        span.textContent = 'HOMERUN';
+        span.className = 'text-gold';
+        mainText.appendChild(span);
+        startFireworks(overlay, 15); 
+    } else if (type === 'grandslam') {
+        const span = document.createElement('span');
+        span.textContent = 'GRAND SLAM';
+        span.className = 'text-rainbow';
+        mainText.appendChild(span);
+        
+        const subText = document.createElement('div');
+        subText.className = 'anim-text-sub text-rainbow';
+        subText.textContent = 'MANRUI HOMERUN'; 
+        textContainer.appendChild(subText); // append subText
+        
+        startFireworks(overlay, 30, true); 
+    } else if (type === 'sayonara') {
+         const span = document.createElement('span');
+         span.textContent = 'SAYONARA';
+         span.className = 'text-sayonara';
+         mainText.appendChild(span);
+         
+         const subText = document.createElement('div');
+         subText.className = 'anim-text-sub text-sayonara';
+         subText.textContent = 'VICTORY'; 
+         textContainer.appendChild(subText);
+
+         startFireworks(overlay, 20, true);
+    }
+    
+    textContainer.insertBefore(mainText, textContainer.firstChild); // Ensure mainText is first
+    overlay.appendChild(textContainer);
+    
+    // Activate
+    overlay.classList.add('active'); // CSS opacity transition
+    
+    // Cleanup
+    setTimeout(() => {
+        overlay.classList.remove('active');
+        setTimeout(() => overlay.innerHTML = '', 500);
+    }, 6000);
+}
+
+function startFireworks(container, count, multiColor = false) {
+    const fwContainer = document.createElement('div');
+    fwContainer.className = 'fireworks-container';
+    container.appendChild(fwContainer);
+    
+    for (let i=0; i<count; i++) {
+        setTimeout(() => {
+            createFirework(fwContainer, multiColor);
+        }, i * 300);
+    }
+}
+
+function createFirework(container, multiColor) {
+    const fw = document.createElement('div');
+    fw.className = 'firework';
+    const x = Math.random() * 80 + 10; // 10-90%
+    const y = Math.random() * 60 + 10; // 10-70%
+    fw.style.left = x + '%';
+    fw.style.top = y + '%';
+    
+    const color = multiColor 
+        ? `hsl(${Math.random() * 360}, 100%, 70%)` 
+        : '#ffd700';
+    
+    fw.style.backgroundColor = color;
+    fw.style.boxShadow = `0 0 20px 5px ${color}`;
+    
+    container.appendChild(fw);
+    
+    // Create sparkles
+    for(let j=0; j<8; j++) {
+        const sparkle = document.createElement('div');
+        sparkle.className = 'sparkle';
+        sparkle.style.backgroundColor = color;
+        sparkle.style.left = x + '%';
+        sparkle.style.top = y + '%';
+        
+        // Random direction
+        const angle = Math.random() * Math.PI * 2;
+        const dist = Math.random() * 100 + 50;
+        const tx = Math.cos(angle) * dist + 'px';
+        const ty = Math.sin(angle) * dist + 'px';
+        
+        sparkle.style.setProperty('--tx', tx);
+        sparkle.style.setProperty('--ty', ty);
+        
+        container.appendChild(sparkle);
+        setTimeout(() => sparkle.remove(), 1000);
+    }
+
+    setTimeout(() => fw.remove(), 1200);
+}
+

@@ -13,14 +13,14 @@
       <div class="admin-header">
         <h1 class="panel-title">⚾ 管理パネル</h1>
         <div class="admin-tabs">
-            <button class="tab-btn active" data-tab="simple">簡易操作</button>
+            <button class="tab-btn active" data-tab="simple">試合操作</button>
             <button class="tab-btn" data-tab="lineup">オーダー管理</button>
             <button class="tab-btn" data-tab="db">DB管理</button>
             <button class="tab-btn" data-tab="control">試合管理</button>
         </div>
       </div>
 
-      <!-- ==================== Tab: Simple (簡易操作) ==================== -->
+      <!-- ==================== Tab: Simple (試合操作) ==================== -->
       <div id="tab-simple" class="tab-content active">
           <!-- 現在の状況表示 -->
           <div class="current-info" style="text-align:center; margin-bottom:10px; background:rgba(255,215,0,0.1); padding:5px; border-radius:4px;">
@@ -184,6 +184,29 @@
                  padding: 2px 6px; font-size: 10px; background: #e74c3c; color: #fff; border: none; border-radius: 3px; cursor: pointer; margin-left: 5px;
              }
              .btn-sub-player:hover { background: #c0392b; }
+             
+             .btn-apply-changes {
+                 width: 100%;
+                 padding: 10px;
+                 margin-top: 15px;
+                 background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+                 color: #fff;
+                 border: none;
+                 border-radius: 8px;
+                 font-size: 14px;
+                 font-weight: bold;
+                 cursor: pointer;
+                 transition: all 0.3s ease;
+                 box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+             }
+             .btn-apply-changes:hover {
+                 background: linear-gradient(135deg, #c0392b 0%, #a93226 100%);
+                 transform: translateY(-2px);
+                 box-shadow: 0 6px 12px rgba(0, 0, 0, 0.4);
+             }
+             .btn-apply-changes:active {
+                 transform: translateY(0);
+             }
           </style>
 
           <div class="lineups-row">
@@ -193,6 +216,7 @@
               <div id="lineup-input-away" class="lineup-input-panel">
                  <!-- JS will generate content -->
               </div>
+              <button id="btn-apply-changes-away" class="btn-apply-changes">🔄 交代を適用</button>
             </section>
             
             <!-- 後攻チーム（右側） -->
@@ -201,6 +225,7 @@
               <div id="lineup-input-home" class="lineup-input-panel">
                 <!-- JS will generate content -->
               </div>
+              <button id="btn-apply-changes-home" class="btn-apply-changes">🔄 交代を適用</button>
             </section>
           </div>
       </div>
@@ -462,6 +487,13 @@
                 </div>
               </section>
 
+              <!-- 試合リセット -->
+              <section class="control-section">
+                <button id="btn-reset-game" class="btn btn-full btn-danger" style="width:100%;">
+                    試合データリセット
+                </button>
+              </section>
+
                <section class="control-section">
                  <div class="log-tabs-header" style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; border-bottom:1px solid rgba(255,255,255,0.1); padding-bottom:5px;">
                     <h2 style="margin:0; border:none; padding:0;">ログ・詳細編集</h2>
@@ -473,44 +505,61 @@
 
                  <!-- Tab: At-Bat Log -->
                  <div id="log-content-atbat" style="display:block;">
-                     <div id="at-bat-log-container" class="log-table-wrapper" style="overflow-y: auto; max-height: 500px; background: rgba(0,0,0,0.2); border-radius: 4px; padding: 5px;">
-                       <table class="at-bat-log-table" style="width: 100%; border-collapse: collapse; font-size: 11px;">
-                         <thead>
-                           <tr style="border-bottom: 1px solid #444; color: #ffd700;">
-                             <th style="padding: 4px; text-align: left; width: 40px;">回</th>
-                             <th style="padding: 4px; text-align: left;">打者</th>
-                             <th style="padding: 4px; text-align: left;">投手</th>
-                             <th style="padding: 4px; text-align: left; width: 50px;">結果</th>
-                             <th style="padding: 4px; text-align: center; width: 30px;">点</th>
-                             <!-- <th style="padding: 4px; text-align: center; width: 30px;">失</th>
-                             <th style="padding: 4px; text-align: center; width: 30px;">責</th> -->
-                             <th style="padding: 4px; text-align: right; width: 40px;">操作</th>
-                           </tr>
-                         </thead>
-                         <tbody id="at-bat-log-body">
-                           <!-- JSで生成 -->
-                         </tbody>
-                       </table>
+                     <div class="log-team-selector" style="display:flex; justify-content:center; gap:20px; margin-bottom:10px;">
+                        <button id="btn-log-away" class="btn-log-team active" onclick="window.switchLogTeam('away')" style="flex:1; padding:8px; background:#444; border:none; border-radius:4px; color:#fff; cursor:pointer;">AWAY</button>
+                        <button id="btn-log-home" class="btn-log-team" onclick="window.switchLogTeam('home')" style="flex:1; padding:8px; background:#444; border:none; border-radius:4px; color:#fff; cursor:pointer;">HOME</button>
+                     </div>
+                     <div id="at-bat-log-container" class="log-list-wrapper" style="overflow-y: auto; max-height: 500px; background: rgba(0,0,0,0.2); border-radius: 4px; padding: 5px;">
+                        <!-- JSで生成 -->
                      </div>
                  </div>
 
                  <!-- Tab: Pitcher Log -->
                  <div id="log-content-pitcher" style="display:none;">
                     <div class="pitcher-stats-container" style="display:flex; justify-content:center; gap:10px; padding: 5px;">
+                      
+                      <!-- Away Team Pitcher Table -->
                       <div class="pitcher-group" style="flex:1;">
-                        <h3 style="font-size:12px; margin-bottom:5px; color:#ffd700;">先攻 (Away)</h3>
-                        <div id="pitcher-stats-away-list" class="pitcher-list">
-                            <!-- JSで生成 -->
-                        </div>
+                        <h3 id="pitcher-log-label-away" style="font-size:12px; margin-bottom:5px; color:#ffd700; border-bottom:1px solid #555;">AWAY</h3>
+                        <table class="at-bat-log-table" style="width:100%; font-size:11px;">
+                            <thead>
+                                <tr style="border-bottom: 1px solid #444; color: #aaa;">
+                                    <th style="padding:2px; text-align:left; min-width: 80px;">投手</th>
+                                    <th style="padding:2px; width:45px; text-align:center;">IP</th>
+                                    <th style="padding:2px; width:35px; text-align:center;">K</th>
+                                    <th style="padding:2px; width:35px; text-align:center;">BB</th>
+                                    <th style="padding:2px; width:35px; text-align:center;">R</th>
+                                    <th style="padding:2px; width:35px; text-align:center;">ER</th>
+                                </tr>
+                            </thead>
+                            <tbody id="pitcher-table-body-away">
+                                <!-- JS Populated -->
+                            </tbody>
+                        </table>
                       </div>
+
+                      <!-- Home Team Pitcher Table -->
                       <div class="pitcher-group" style="flex:1;">
-                        <h3 style="font-size:12px; margin-bottom:5px; color:#ffd700;">後攻 (Home)</h3>
-                        <div id="pitcher-stats-home-list" class="pitcher-list">
-                            <!-- JSで生成 -->
-                        </div>
+                        <h3 id="pitcher-log-label-home" style="font-size:12px; margin-bottom:5px; color:#ffd700; border-bottom:1px solid #555;">HOME</h3>
+                        <table class="at-bat-log-table" style="width:100%; font-size:11px;">
+                            <thead>
+                                <tr style="border-bottom: 1px solid #444; color: #aaa;">
+                                    <th style="padding:2px; text-align:left;">投手</th>
+                                    <th style="padding:2px; width:30px; text-align:center;">IP</th>
+                                    <th style="padding:2px; width:25px; text-align:center;">K</th>
+                                    <th style="padding:2px; width:25px; text-align:center;">BB</th>
+                                    <th style="padding:2px; width:25px; text-align:center;">R</th>
+                                    <th style="padding:2px; width:25px; text-align:center;">ER</th>
+                                </tr>
+                            </thead>
+                            <tbody id="pitcher-table-body-home">
+                                <!-- JS Populated -->
+                            </tbody>
+                        </table>
                       </div>
+
                     </div>
-                    <div style="margin-top: 5px; font-size: 9px; color: #888; text-align:center;">※手動修正可 (回, 奪三振, 失点, 自責)</div>
+                    <div style="margin-top: 5px; font-size: 9px; color: #888; text-align:center;">※手動修正可</div>
                  </div>
                </section>
                

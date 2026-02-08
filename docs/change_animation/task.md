@@ -5,4 +5,5 @@
 - [x] `js/logic/game.js` の `recordAtBatResult` を修正し、チェンジ発生時に `true` を返すようにする
 - [x] `js/app.js` の各ボタンイベントでチェンジを検知し `CHANGE` イベントをブロードキャストする処理を追加
 - [x] `js/ui/render.js` に `playChangeAnimation` 関数を追加し、`CHANGE` 受信時に呼び出す
+- [x] アニメーションの速度を「ゆっくりめ」に調整 (CSS)
 - [x] 動作確認

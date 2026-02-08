@@ -38,9 +38,9 @@ function resizeWindowForTab(tabName) {
     let width, height;
 
     switch (tabName) {
-        case 'simple':
-            width = 800;
-            height = 630; // Slightly taller for tabs
+        case 'simple': // 試合操作
+            width = 1200;
+            height = 800;
             break;
         case 'lineup':
             width = 1200;

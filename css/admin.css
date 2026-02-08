@@ -3,24 +3,28 @@
 /* ==================== 管理パネル (Admin-Only) ==================== */
 body.admin-mode {
   background: linear-gradient(135deg, var(--bg-dark) 0%, var(--bg-panel) 100%);
-  padding: 10px;
-  overflow: auto;
+  padding: 0;
+  overflow: hidden; /* Hide scrollbars on body, panel handles it */
   margin: 0;
   font-family: 'Noto Sans JP', sans-serif;
   color: #fff;
+  width: 100%;
+  height: 100%;
 }
 
 /* Base Panel Style */
 .control-panel {
   background: var(--bg-panel); /* defined in style.css, fallback needed if not available */
   background: rgba(255, 255, 255, 0.05); /* Fallback */
-  border-radius: 10px;
-  padding: 15px;
-  box-shadow: 0 5px 30px rgba(0,0,0,0.5);
+  border-radius: 0; /* Corner radius reduced for full window feel */
+  padding: 5px; /* Minimal padding */
+  box-shadow: none;
   display: flex;
   flex-direction: column;
+  width: 100vw; /* Force full width */
   height: 100vh; /* Full height for tab layout */
   box-sizing: border-box;
+  margin: -10px; /* Counteract body padding */
 }
 
 /* Header & Tabs */
@@ -226,7 +230,7 @@ th { color: var(--accent); }
 }
 .control-column {
     width: 100%;
-    max-width: 400px;
+    /* max-width removed to fill space */
 }
 .inning-controls { display: flex; justify-content: center; gap: 10px; align-items: center; }
 .score-controls { display: flex; flex-direction: column; align-items: center; gap: 10px; }

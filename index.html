@@ -47,34 +47,16 @@
             <!-- アウェイチーム（左側） -->
             <div class="team-pitcher-panel away-pitcher-panel" id="away-pitcher-panel">
                 <div class="pitcher-team-label" id="away-pitcher-team-label">AWAY</div>
-                <div class="pitcher-list">
-                    <div class="pitcher-entry starter" id="away-starter-entry">
-                        <span class="pitcher-role">先発</span>
-                        <span class="pitcher-name" id="away-starter-name">-</span>
-                    </div>
-                    <div class="relief-section" id="away-relief-section">
-                        <div class="relief-header">リリーフ</div>
-                        <div class="relief-list" id="away-relay-container">
-                            <!-- リリーフ投手がJSで追加される -->
-                        </div>
-                    </div>
+                <div class="pitcher-list" id="away-pitcher-list">
+                    <!-- JSで全投手が追加される -->
                 </div>
             </div>
             
             <!-- ホームチーム（右側） -->
             <div class="team-pitcher-panel home-pitcher-panel" id="home-pitcher-panel">
                 <div class="pitcher-team-label" id="home-pitcher-team-label">HOME</div>
-                <div class="pitcher-list">
-                    <div class="pitcher-entry starter" id="home-starter-entry">
-                        <span class="pitcher-role">先発</span>
-                        <span class="pitcher-name" id="home-starter-name">-</span>
-                    </div>
-                    <div class="relief-section" id="home-relief-section">
-                        <div class="relief-header">リリーフ</div>
-                        <div class="relief-list" id="home-relay-container">
-                            <!-- リリーフ投手がJSで追加される -->
-                        </div>
-                    </div>
+                <div class="pitcher-list" id="home-pitcher-list">
+                    <!-- JSで全投手が追加される -->
                 </div>
             </div>
         </div>
@@ -88,6 +70,9 @@
           <!-- JSで生成 -->
         </div>
       </div>
+
+      <!-- ==================== コメント欄 ==================== -->
+      <div class="comment-bar" id="comment-bar">Comment</div>
 
       <!-- ==================== 上部：スコアボード ==================== -->
       <div class="top-scoreboard">

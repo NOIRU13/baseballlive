@@ -25,21 +25,22 @@
 
 .score-log-container {
     display: flex;
-    flex-direction: column;
-    gap: 10px;
-    max-height: 250px; /* Increase height for split view */
+    flex-direction: row; /* 横並びに変更 */
+    gap: 20px;
+    max-height: 120px; /* 3行程度に制限 */
     overflow-y: hidden;
     padding: 0 20px;
 }
 
 .score-log-team-box {
+    flex: 1;
     display: flex;
     flex-direction: column;
     gap: 4px;
-    background: rgba(0, 0, 0, 0.4); /* Slight background to separate */
+    background: rgba(0, 0, 0, 0.4);
     padding: 5px;
     border-radius: 4px;
-    min-height: 30px;
+    min-height: 80px; /* 少なくとも3行分の枠を確保 */
 }
 
 /* Border color for teams */
@@ -48,38 +49,16 @@
 }
 
 #score-log-team-home {
-    border-left: 3px solid #ffd700;
+    border-left: 3px solid #ffd700; /* ホーム側は左ボーダーのままか、右ボーダーにするか？左右対称デザインなら右ボーダーが良いが、既存コードは左。一旦そのまま */
 }
 
-.score-log-item {
-    font-family: 'Noto Sans JP', sans-serif;
-    font-size: 16px; /* Compact font */
-    font-weight: 700;
-    color: #fff;
-    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
-    background: transparent;
-    padding: 2px 5px;
-    white-space: nowrap;
-    text-align: left;
-    display: block; /* Block for simple text */
-}
-
-/* Specific styling for compact mode if needed, but above is already compact */
-.score-log-item.compact {
-    font-size: 18px;
-    letter-spacing: 1px;
-}
-
-@keyframes fadeInSlideUp {
-    from { opacity: 0; transform: translateY(5px); }
-    to { opacity: 1; transform: translateY(0); }
-}
+/* ... existing code ... */
 
 
 /* ==================== 両チーム投手リレーセクション ==================== */
 .pitcher-relay-section {
     position: absolute;
-    top: 50%;
+    top: 55%; /* 少し上に移動 (50%から65%に変更していたのを55%へ) */
     left: 50%;
     transform: translate(-50%, -50%);
     width: 900px;
@@ -253,26 +232,28 @@
     50% { opacity: 0.4; }
 }
 
-/* リリーフセクション */
-.relief-section {
-    margin-top: 10px;
-    display: none; /* デフォルトは非表示、リリーフがいる場合のみ表示 */
-}
-
-.relief-section.has-relievers {
-    display: block;
-}
-
-.relief-header {
+/* Pitcher Stats */
+.pitcher-stats {
     font-family: 'Oswald', sans-serif;
-    font-size: 11px;
-    font-weight: 600;
-    color: #888;
-    letter-spacing: 1px;
-    text-transform: uppercase;
-    padding: 5px 10px;
-    margin-bottom: 5px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    font-size: 14px;
+    font-weight: 500;
+    color: #ffd700;
+    margin-left: 10px;
+    white-space: nowrap;
+}
+
+.pitcher-entry.on-mound .pitcher-stats {
+    font-size: 16px;
+    font-weight: 700;
+    color: #fff;
+    text-shadow: 0 0 5px rgba(255, 215, 0, 0.5);
+}
+
+.pitcher-entry {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    /* other styles remain similar */
 }
 
 .relief-list {

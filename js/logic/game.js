@@ -252,8 +252,8 @@ export function recordAtBatResult(state, resultCode, hasLog = false) {
         recordStrikeout(state);
         isChange = addOut(state);
     }
-    // その他のアウト
-    else if (['groundout', 'flyout', 'lineout', 'dp'].includes(resultCode)) {
+    // その他のアウト (犠打、犠飛含む)
+    else if (['groundout', 'flyout', 'lineout', 'dp', 'sacrifice', 'sac_fly'].includes(resultCode)) {
         recordOut(state);
         if (resultCode === 'dp') {
              // 併殺はアウト2つ
@@ -405,7 +405,8 @@ export function formatResultForAnimation(code) {
         'lineout': 'OUT',
         'sacrifice': 'SACRIFICE',
         'fc': 'FIELDER CHOICE',
-        'dp': 'DOUBLE PLAY'
+        'dp': 'DOUBLE PLAY',
+        'sac_fly': 'SACRIFICE FLY'
     };
     return map[code] || code.toUpperCase();
 }
