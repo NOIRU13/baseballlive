@@ -632,6 +632,11 @@ export function showResultAnimation(resultCode) {
         return;
     }
     
+    if (resultCode === 'CHANGE') {
+        playChangeAnimation();
+        return;
+    }
+    
     // 既存のヒット等のアニメーション
     const overlay = document.getElementById('result-overlay');
     const textEl = document.getElementById('result-text');
@@ -1382,3 +1387,22 @@ function animateLineupRows(team, delayStart = 0, direction = 'left') {
     });
 }
 
+/**
+ * 3アウトチェンジ用アニメーション
+ */
+export function playChangeAnimation() {
+    const overlay = document.getElementById('change-overlay');
+    if (!overlay) return;
+    
+    // 他のアニメーションをクリア（重なり防止）
+    const resultOverlay = document.getElementById('result-overlay');
+    if (resultOverlay) resultOverlay.classList.remove('active');
+    
+    // 表示開始
+    overlay.classList.add('active');
+    
+    // 約6秒後に非表示にする（ゆったりめ）
+    setTimeout(() => {
+        overlay.classList.remove('active');
+    }, 6500);
+}
