@@ -292,3 +292,132 @@
     text-align: left;
     padding-left: 5px;
 }
+
+/* ==================== BSO & Runner Add-on (Pitcher Box) ==================== */
+.pitcher-addon-stats {
+  position: absolute;
+  top: -140px; /* Boxの上、右側に配置 (Moved higher) */
+  right: 0;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  background: rgba(0, 0, 0, 0.4); /* 少し暗く */
+  padding: 8px 15px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(4px);
+  z-index: 20;
+}
+
+/* BSO Mini Display (Override scoreboard.css) */
+/* 詳細度を上げるためにIDセレクタや親セレクタを使用 */
+.player-display-bottom .bso-center {
+  position: static; /* Center positioning解除 */
+  transform: none;
+  background: transparent;
+  border: none;
+  padding: 0;
+  box-shadow: none;
+  backdrop-filter: none;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: auto;
+  bottom: auto;
+  left: auto;
+}
+
+.player-display-bottom .bso-center .count-row {
+  gap: 8px;
+  justify-content: flex-start; /* 左寄せ */
+}
+
+.player-display-bottom .bso-center .count-label {
+  font-size: 20px; /* 小さく */
+  width: 20px;
+  text-align: center;
+}
+
+.player-display-bottom .bso-center .dot {
+  width: 14px;
+  height: 14px;
+}
+
+/* Runner Mini Display (Override scoreboard.css) */
+.player-display-bottom .runner-diamond-center {
+  position: relative;
+  transform: none;
+  left: auto;
+  top: auto;
+  bottom: auto;
+  width: 80px; /* 縮小 */
+  height: 80px;
+  margin: 0;
+}
+
+.player-display-bottom .base-center {
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  box-sizing: border-box;
+  /* デフォルトスタイル: 暗いグレーの背景、白い枠線、45度回転 */
+  background: rgba(80, 80, 100, 0.6);
+  border: 2px solid rgba(255, 255, 255, 0.5);
+  transform: rotate(45deg);
+  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  box-shadow: inset 0 0 5px rgba(0,0,0,0.8);
+}
+
+.player-display-bottom .base-center.active {
+  background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
+  border-color: #fff;
+  box-shadow: 0 0 10px rgba(255, 215, 0, 0.8), inset 0 0 5px #fff;
+  transform: rotate(45deg) scale(1.2);
+  z-index: 10;
+}
+
+/* 位置調整: 中心(40,40)基準 
+   Width=18px (border-box). Center offset=9px.
+   Target center distance from 40,40 = 26px (approx 52px diameter)
+*/
+.player-display-bottom .base-center.second { 
+  top: 5px; 
+  left: 50%; 
+  transform: translateX(-50%) rotate(45deg); 
+}
+
+.player-display-bottom .base-center.second.active {
+  transform: translateX(-50%) rotate(45deg) scale(1.2);
+}
+
+.player-display-bottom .base-center.third { 
+  top: 31px; /* 40 - 9 = 31 */
+  left: 5px;
+  transform: rotate(45deg);
+}
+
+.player-display-bottom .base-center.third.active {
+  transform: rotate(45deg) scale(1.2);
+}
+
+.player-display-bottom .base-center.first { 
+  top: 31px; /* 40 - 9 = 31 */
+  right: 5px;
+  transform: rotate(45deg);
+}
+
+.player-display-bottom .base-center.first.active {
+  transform: rotate(45deg) scale(1.2);
+}
+
+.player-display-bottom .home-plate {
+  position: absolute;
+  bottom: 5px;
+  width: 18px;
+  height: 18px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(255, 255, 255, 0.6);
+  /* Standard Home Plate Orientation: Flat top (towards pitcher), Pointed bottom (towards catcher) */
+  clip-path: polygon(50% 100%, 100% 70%, 100% 0%, 0% 0%, 0% 70%);
+}

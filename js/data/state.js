@@ -10,6 +10,16 @@ export let state = JSON.parse(JSON.stringify(DEFAULT_STATE));
 export let useAPI = false;
 export let isAdminMode = false;
 export let isDisplayMode = false;
+export let playerMap = {};
+export let teamMap = {};
+
+/**
+ * マスタデータを設定
+ */
+export function setMasterData(pMap, tMap) {
+    playerMap = pMap;
+    teamMap = tMap;
+}
 
 /**
  * 初期化時のモード設定

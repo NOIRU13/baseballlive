@@ -8,6 +8,11 @@ import * as Render from './ui/render.js';
 import * as Sync from './infra/sync.js';
 
 // ==================== 初期化 ====================
+let gameId = 1; // Default Game ID for now
+let allPlayers = []; // 全選手データ
+let allTeams = []; // 全チームデータ
+let teamSelections = {away: null, home: null}; // 選択されたチームID
+
 document.addEventListener('DOMContentLoaded', async () => {
     // ページモード判定
     checkPageMode();
@@ -15,9 +20,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     // 状態の読み込み
     await State.loadState();
     
+    // DBからマスタデータ読み込み
+    await loadMasterData();
+    
     // 管理モードの場合は入力フォーム生成
     if (State.isAdminMode) {
-        Render.generateLineupInputs(State.state);
+        // チームプルダウンを初期化
+        populateTeamSelects();
+        Render.generateLineupInputs(State.state, allPlayers, teamSelections);
     }
     
     // UIの更新
@@ -232,13 +242,64 @@ function setupEventListeners() {
     
     // 打席結果ボタン
     document.querySelectorAll('[data-result]').forEach(btn => {
-        btn.addEventListener('click', () => {
+        btn.addEventListener('click', async () => {
             const result = btn.dataset.result;
+            
+            // 現在の打者・投手・イニング情報を取得
+            const currentHalf = State.state.inning.half;
+            const currentTeam = currentHalf === 'top' ? 'away' : 'home';
+            const pitcherTeam = currentHalf === 'top' ? 'home' : 'away';
+            
+            const batterIndex = State.state.currentBatter[currentTeam];
+            const batterName = State.state.lineup[currentTeam][batterIndex];
+            const pitcherName = State.state.pitcher ? State.state.pitcher[pitcherTeam] : ''; 
+            
+            const batterId = State.playerMap[batterName];
+            const pitcherId = State.playerMap[pitcherName];
+            
+            // API送信
+            if (batterId) {
+                try {
+                    await fetch('http://localhost:3000/api/atbats', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            game_id: gameId,
+                            batter_id: batterId,
+                            pitcher_id: pitcherId || null,
+                            inning: State.state.inning.number,
+                            half: currentHalf,
+                            result_type: convertResultToDbType(result),
+                            rbi: 0, // TODO: UIで打点を指定できるようにするか、ロジックで推定するか
+                            is_sac_fly: result === 'sacrifice' ? true : false, // 簡易
+                            is_sac_bunt: false
+                        })
+                    });
+                    console.log('Stats recorded for', batterName);
+                } catch (e) {
+                    console.error('Failed to record stats', e);
+                }
+            } else {
+                console.warn('Batter ID not found for:', batterName);
+            }
+
             GameLogic.recordAtBatResult(State.state, result);
             Sync.broadcastResultEvent(result, State.isAdminMode);
             updateAndSave();
         });
     });
+
+function convertResultToDbType(type) {
+    // Map button data-result to DB enum/varchar
+    const map = {
+        'single': 'Single', 'double': 'Double', 'triple': 'Triple', 'homerun': 'HR',
+        'walk': 'Walk', 'hbp': 'HBP', 'error': 'Error',
+        'strikeout': 'Strikeout', 'groundout': 'Groundout', 'flyout': 'Flyout', 'lineout': 'Lineout',
+        'sacrifice': 'Sacrifice', 'fc': 'FC', 'dp': 'DP'
+    };
+    return map[type] || 'Out';
+}
+
     
     // 前の打者/次の打者
     addListener('btn-prev-batter', 'click', () => {
@@ -324,4 +385,91 @@ function updateAndSave() {
 function nextBatter() {
     const team = State.state.inning.half === 'top' ? 'away' : 'home';
     State.state.currentBatter[team] = (State.state.currentBatter[team] + 1) % 9;
+}
+
+// Global variables for master data and selections
+let allPlayers = [];
+let allTeams = [];
+let teamSelections = { away: null, home: null };
+
+/**
+ * マスタデータをロードしてキャッシュする
+ */
+async function loadMasterData() {
+    try {
+        // 選手一覧取得
+        const pRes = await fetch('http://localhost:3000/api/players');
+        let pMap = {};
+        if (pRes.ok) {
+            const players = await pRes.json();
+            allPlayers = players; // 全選手を保存
+            players.forEach(p => {
+                pMap[p.name] = p.id;
+            });
+        }
+        
+        // チーム一覧取得
+        const tRes = await fetch('http://localhost:3000/api/teams');
+        let tMap = {};
+        if (tRes.ok) {
+            const teams = await tRes.json();
+            allTeams = teams; // 全チームを保存
+            teams.forEach(t => {
+                tMap[t.name] = t.id;
+            });
+        }
+        
+        State.setMasterData(pMap, tMap);
+        console.log('Master data loaded', { playerRecords: Object.keys(pMap).length });
+    } catch (e) {
+        console.error('Failed to load master data', e);
+    }
+}
+
+/**
+ * チームプルダウンを初期化
+ */
+function populateTeamSelects() {
+    const awaySelect = document.getElementById('away-team-select');
+    const homeSelect = document.getElementById('home-team-select');
+    
+    if (!awaySelect || !homeSelect) return;
+    
+    // チームオプションを追加
+    allTeams.forEach(team => {
+        const awayOpt = document.createElement('option');
+        awayOpt.value = team.id;
+        awayOpt.textContent = team.name;
+        awaySelect.appendChild(awayOpt);
+        
+        const homeOpt = document.createElement('option');
+        homeOpt.value = team.id;
+        homeOpt.textContent = team.name;
+        homeSelect.appendChild(homeOpt);
+    });
+    
+    // チーム選択時のイベントリスナー
+    awaySelect.addEventListener('change', (e) => {
+        teamSelections.away = e.target.value;
+        // チーム名を更新
+        const selectedTeam = allTeams.find(t => t.id === parseInt(e.target.value));
+        if (selectedTeam) {
+            State.state.teams.away = selectedTeam.name;
+        }
+        // 選手プルダウンを再生成
+        Render.generateLineupInputs(State.state, allPlayers, teamSelections);
+        updateAndSave();
+    });
+    
+    homeSelect.addEventListener('change', (e) => {
+        teamSelections.home = e.target.value;
+        // チーム名を更新
+        const selectedTeam = allTeams.find(t => t.id === parseInt(e.target.value));
+        if (selectedTeam) {
+            State.state.teams.home = selectedTeam.name;
+        }
+        // 選手プルダウンを再生成
+        Render.generateLineupInputs(State.state, allPlayers, teamSelections);
+        updateAndSave();
+    });
 }

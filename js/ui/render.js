@@ -3,6 +3,11 @@
  */
 import { RESULT_LABELS, POSITIONS } from '../data/constants.js';
 import * as GameLogic from '../logic/game.js';
+import { playerMap } from '../data/state.js';
+
+let lastBatterId = null;
+let lastPitcherId = null;
+
 
 /**
  * 全ての表示を更新する
@@ -221,7 +226,62 @@ export function updateBottomStats(state, isDisplayMode) {
         setText('pitcher-strikeouts', state.pitcherStats[defenseTeam].strikeouts || 0);
         setText('pitcher-runs', state.pitcherStats[defenseTeam].runs || 0);
     }
+
+    // シーズン成績更新 (API)
+    updateSeasonStats(batterName, pitcherName);
 }
+
+async function updateSeasonStats(batterName, pitcherName) {
+    // Batter Stats
+    const batterId = playerMap[batterName];
+    if (batterId) {
+        if (batterId !== lastBatterId) {
+            lastBatterId = batterId;
+            try {
+                const res = await fetch(`http://localhost:3000/api/stats/batter/${batterId}`);
+                if (res.ok) {
+                    const stats = await res.json();
+                    setText('batter-avg', stats.avg);
+                    setText('batter-hr', stats.hr);
+                    setText('batter-rbi', stats.rbi);
+                    setText('batter-ops', stats.ops);
+                }
+            } catch (e) {
+                console.error('Failed to fetch batter stats', e);
+            }
+        }
+    } else {
+        // ID未解決 or 選手なし
+        lastBatterId = null;
+        setText('batter-avg', '.---');
+        setText('batter-hr', '0');
+        setText('batter-rbi', '0');
+        setText('batter-ops', '.---');
+    }
+
+    // Pitcher Stats
+    const pitcherId = playerMap[pitcherName];
+    if (pitcherId) {
+        if (pitcherId !== lastPitcherId) {
+            lastPitcherId = pitcherId;
+            try {
+                const res = await fetch(`http://localhost:3000/api/stats/pitcher/${pitcherId}`);
+                if (res.ok) {
+                    const stats = await res.json();
+                    setText('pitcher-era', stats.era);
+                    setText('pitcher-k9', stats.k9);
+                }
+            } catch (e) {
+                console.error('Failed to fetch pitcher stats', e);
+            }
+        }
+    } else {
+        lastPitcherId = null;
+        setText('pitcher-era', '-.--');
+        setText('pitcher-k9', '-.--');
+    }
+}
+
 
 /**
  * 打順ボードの表示を更新
@@ -378,13 +438,20 @@ export function showResultAnimation(resultCode) {
 
 /**
  * 打順入力フォームを生成（Admin初期化時）
+ * @param {Object} state 
+ * @param {Array} players - 選手データ配列
+ * @param {Object} teamSelections - 選択されているチームID {away: teamId, home: teamId}
  */
-export function generateLineupInputs(state) {
+export function generateLineupInputs(state, players = [], teamSelections = {away: null, home: null}) {
     ['away', 'home'].forEach(team => {
         const container = document.getElementById(`lineup-input-${team}`);
         if (!container) return;
         
         container.innerHTML = '';
+        
+        // 選択されたチームの選手をフィルタリング
+        const teamId = teamSelections[team];
+        const teamPlayers = teamId ? players.filter(p => p.team_id === parseInt(teamId)) : [];
         
         for (let i = 0; i < 9; i++) {
             const row = document.createElement('div');
@@ -395,14 +462,40 @@ export function generateLineupInputs(state) {
             num.textContent = (i + 1);
             row.appendChild(num);
             
-            const nameInput = document.createElement('input');
-            nameInput.type = 'text';
-            nameInput.className = 'lineup-input-name';
-            nameInput.dataset.team = team;
-            nameInput.dataset.order = i;
-            nameInput.value = state.lineup[team][i] || '';
-            nameInput.placeholder = '選手名';
-            row.appendChild(nameInput);
+            // 選手名をプルダウンで選択
+            const nameSelect = document.createElement('select');
+            nameSelect.className = 'lineup-input-name';
+            nameSelect.dataset.team = team;
+            nameSelect.dataset.order = i;
+            
+            // 空のオプション
+            const emptyOpt = document.createElement('option');
+            emptyOpt.value = '';
+            emptyOpt.textContent = '選手を選択...';
+            nameSelect.appendChild(emptyOpt);
+            
+            // チームの選手を追加
+            teamPlayers.forEach(player => {
+                const opt = document.createElement('option');
+                opt.value = player.name;
+                opt.textContent = `${player.name} (#${player.number || '-'})`;
+                if (state.lineup[team][i] === player.name) {
+                    opt.selected = true;
+                }
+                nameSelect.appendChild(opt);
+            });
+            
+            // 現在の値がリストにない場合は追加
+            const currentName = state.lineup[team][i];
+            if (currentName && !teamPlayers.find(p => p.name === currentName)) {
+                const customOpt = document.createElement('option');
+                customOpt.value = currentName;
+                customOpt.textContent = currentName;
+                customOpt.selected = true;
+                nameSelect.appendChild(customOpt);
+            }
+            
+            row.appendChild(nameSelect);
             
             const posSelect = document.createElement('select');
             posSelect.className = 'lineup-input-pos';
@@ -437,13 +530,37 @@ export function generateLineupInputs(state) {
         pLabel.style.color = '#e74c3c';
         pRow.appendChild(pLabel);
         
-        const pInput = document.createElement('input');
-        pInput.type = 'text';
-        pInput.className = 'lineup-input-pitcher';
-        pInput.dataset.team = team;
-        pInput.value = state.pitcher ? (state.pitcher[team] || '') : '';
-        pInput.placeholder = '投手名（DH制・先発）';
-        pRow.appendChild(pInput);
+        // 投手もプルダウンで選択
+        const pSelect = document.createElement('select');
+        pSelect.className = 'lineup-input-pitcher';
+        pSelect.dataset.team = team;
+        
+        const pEmptyOpt = document.createElement('option');
+        pEmptyOpt.value = '';
+        pEmptyOpt.textContent = '投手を選択...';
+        pSelect.appendChild(pEmptyOpt);
+        
+        teamPlayers.forEach(player => {
+            const opt = document.createElement('option');
+            opt.value = player.name;
+            opt.textContent = `${player.name} (#${player.number || '-'})`;
+            if (state.pitcher && state.pitcher[team] === player.name) {
+                opt.selected = true;
+            }
+            pSelect.appendChild(opt);
+        });
+        
+        // 現在の値がリストにない場合は追加
+        const currentPitcher = state.pitcher ? state.pitcher[team] : '';
+        if (currentPitcher && !teamPlayers.find(p => p.name === currentPitcher)) {
+            const customOpt = document.createElement('option');
+            customOpt.value = currentPitcher;
+            customOpt.textContent = currentPitcher;
+            customOpt.selected = true;
+            pSelect.appendChild(customOpt);
+        }
+        
+        pRow.appendChild(pSelect);
         
         const pPos = document.createElement('span');
         pPos.className = 'lineup-pos-fixed';

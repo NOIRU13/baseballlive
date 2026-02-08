@@ -107,13 +107,24 @@
         font-weight: 500;
       }
       
-      .input-group input {
+      .input-group input,
+      .input-group select {
         padding: 4px;
         border: 1px solid rgba(255, 215, 0, 0.3);
         border-radius: 4px;
         background: rgba(255, 255, 255, 0.1);
         color: #fff;
         font-size: 10px;
+        width: 100%;
+      }
+      
+      .input-group select {
+        cursor: pointer;
+      }
+      
+      .input-group select option {
+        background: #1a1a2e;
+        color: #fff;
       }
       
       /* イニング操作 */
@@ -227,7 +238,8 @@
         min-width: 20px;
       }
       
-      .lineup-item input {
+      .lineup-item input,
+      .lineup-item select {
         flex: 1;
         padding: 6px;
         border: 1px solid rgba(255, 215, 0, 0.2);
@@ -238,11 +250,6 @@
       }
       
       .lineup-item select {
-        padding: 6px;
-        border: 1px solid rgba(255, 215, 0, 0.2);
-        border-radius: 4px;
-        background: rgba(255, 255, 255, 0.1);
-        color: #fff;
         font-size: 11px;
         width: 55px;
       }
@@ -336,23 +343,28 @@
       <section class="control-section link-section">
         <a href="index.html" target="_blank" class="btn btn-link">📺 スコアボード</a>
         <a href="admin-simple.html" target="_blank" class="btn btn-link">🎮 簡易操作</a>
+        <a href="admin-db.html" target="_blank" class="btn btn-link">🗄️ DB管理</a>
       </section>
       
       <!-- メインレイアウト: 左右2カラム -->
       <div class="main-layout">
         <!-- 左カラム: 操作系 -->
         <div class="left-column">
-          <!-- チーム名編集 -->
+          <!-- チーム選択 -->
           <section class="control-section">
-            <h2>チーム名</h2>
+            <h2>チーム選択</h2>
             <div class="team-inputs">
               <div class="input-group">
-                <label for="away-name">先攻</label>
-                <input type="text" id="away-name" placeholder="アウェイ" maxlength="10" />
+                <label for="away-team-select">先攻</label>
+                <select id="away-team-select" class="team-select">
+                  <option value="">チームを選択...</option>
+                </select>
               </div>
               <div class="input-group">
-                <label for="home-name">後攻</label>
-                <input type="text" id="home-name" placeholder="ホーム" maxlength="10" />
+                <label for="home-team-select">後攻</label>
+                <select id="home-team-select" class="team-select">
+                  <option value="">チームを選択...</option>
+                </select>
               </div>
             </div>
           </section>

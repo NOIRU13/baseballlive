@@ -26,41 +26,12 @@
       <div class="center-space">
         <!-- 16:9 映像エリア -->
 
-        <!-- 中央フィールド表示：扇状球場 + ランナー + BSO -->
+        <!-- 中央フィールド表示：扇状球場 (Background Only) -->
         <div class="center-field-display">
-          <!-- 扇状の球場ライン -->
-          <div class="field-fan-shape">
-            <!-- BSO表示（ピッチャーマウンド位置） -->
-            <div class="bso-center">
-              <div class="count-row">
-                <span class="count-label b">B</span>
-                <div class="count-dots" id="ball-dots">
-                  <span class="dot"></span><span class="dot"></span><span class="dot"></span>
-                </div>
-              </div>
-              <div class="count-row">
-                <span class="count-label s">S</span>
-                <div class="count-dots" id="strike-dots">
-                  <span class="dot"></span><span class="dot"></span>
-                </div>
-              </div>
-              <div class="count-row">
-                <span class="count-label o">O</span>
-                <div class="count-dots" id="out-dots">
-                  <span class="dot"></span><span class="dot"></span>
-                </div>
-              </div>
-            </div>
-
-            <!-- ランナーダイヤモンド -->
-            <div class="runner-diamond-center">
-              <div class="base-center first" id="runner-first"></div>
-              <div class="base-center second" id="runner-second"></div>
-              <div class="base-center third" id="runner-third"></div>
-              <div class="home-plate"></div>
-            </div>
-          </div>
+          <div class="field-fan-shape"></div>
         </div>
+
+
       </div>
 
       <!-- ==================== 右サイドバー：Home Lineup ==================== -->
@@ -125,6 +96,12 @@
       <div class="player-display-bottom left" id="player-display-left">
           <div class="player-role-label">BATTER</div>
           <div class="player-name-large" id="batter-name-large">---</div>
+          <div class="player-stats-row" id="batter-stats-season" style="border-bottom: 1px solid rgba(255,255,255,0.2); margin-bottom: 5px; padding-bottom: 5px; font-size: 0.9em;">
+              <span class="stat-item"><span class="stat-label">AVG:</span> <span id="batter-avg">.---</span></span>
+              <span class="stat-item"><span class="stat-label">HR:</span> <span id="batter-hr">0</span></span>
+              <span class="stat-item"><span class="stat-label">RBI:</span> <span id="batter-rbi">0</span></span>
+              <span class="stat-item"><span class="stat-label">OPS:</span> <span id="batter-ops">.---</span></span>
+          </div>
           <div class="player-stats-row" id="batter-stats-today">
               <!-- 当日の打席結果を表示（例：遊ゴロ 左安 三振） -->
           </div>
@@ -132,8 +109,43 @@
 
       <!-- ==================== 右下:投手詳細情報 ==================== -->
       <div class="player-display-bottom right" id="player-display-right">
+          <!-- BSO & Runner (Moved here) -->
+          <div class="pitcher-addon-stats">
+            <div class="bso-center">
+              <div class="count-row">
+                <span class="count-label b">B</span>
+                <div class="count-dots" id="ball-dots">
+                  <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+                </div>
+              </div>
+              <div class="count-row">
+                <span class="count-label s">S</span>
+                <div class="count-dots" id="strike-dots">
+                  <span class="dot"></span><span class="dot"></span>
+                </div>
+              </div>
+              <div class="count-row">
+                <span class="count-label o">O</span>
+                <div class="count-dots" id="out-dots">
+                  <span class="dot"></span><span class="dot"></span>
+                </div>
+              </div>
+            </div>
+
+            <div class="runner-diamond-center">
+              <div class="base-center first" id="runner-first"></div>
+              <div class="base-center second" id="runner-second"></div>
+              <div class="base-center third" id="runner-third"></div>
+              <div class="home-plate"></div>
+            </div>
+          </div>
+
           <div class="player-role-label">PITCHER</div>
           <div class="player-name-large" id="pitcher-name-large">---</div>
+          <div class="player-stats-row" id="pitcher-stats-season" style="border-bottom: 1px solid rgba(255,255,255,0.2); margin-bottom: 5px; padding-bottom: 5px; font-size: 0.9em;">
+              <span class="stat-item"><span class="stat-label">ERA:</span> <span id="pitcher-era">-.--</span></span>
+              <span class="stat-item"><span class="stat-label" title="Strikeouts per 9 innings">K/9:</span> <span id="pitcher-k9">-.--</span></span>
+          </div>
           <div class="player-stats-row" id="pitcher-stats-today">
               <!-- 投手の当日成績(イニング、三振、失点) -->
               <span class="stat-item"><span class="stat-label">IP:</span> <span id="pitcher-innings">0.0</span></span>
