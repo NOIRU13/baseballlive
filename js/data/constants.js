@@ -63,10 +63,15 @@ export const DEFAULT_STATE = {
         home: '',
         away: ''
     },
+    // 打者ごとの当日打点（RBI）
+    todayRBI: {
+        home: [0, 0, 0, 0, 0, 0, 0, 0, 0],
+        away: [0, 0, 0, 0, 0, 0, 0, 0, 0]
+    },
     // 投手成績（自動計算）
     pitcherStats: {
-        home: { innings: 0, strikeouts: 0, walks: 0, runs: 0, pitchCount: 0, outs: 0 },
-        away: { innings: 0, strikeouts: 0, walks: 0, runs: 0, pitchCount: 0, outs: 0 }
+        home: { innings: 0, strikeouts: 0, walks: 0, runs: 0, pitchCount: 0, outs: 0, runsAtStart: 0 },
+        away: { innings: 0, strikeouts: 0, walks: 0, runs: 0, pitchCount: 0, outs: 0, runsAtStart: 0 }
     }
 };
 

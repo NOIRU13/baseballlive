@@ -235,13 +235,24 @@ export function updateBottomStats(state, isDisplayMode) {
     }
 
     // シーズン成績更新 (API)
-    updateSeasonStats(batterName, pitcherName);
+    updateSeasonStats(batterName, pitcherName, state);
 }
 
-async function updateSeasonStats(batterName, pitcherName) {
-    // Batter Stats（選手ごとにDBから取得）
+async function updateSeasonStats(batterName, pitcherName, state) {
+    const offenseTeam = state.inning.half === 'top' ? 'away' : 'home';
+    const defenseTeam = state.inning.half === 'top' ? 'home' : 'away';
+
+    // Batter Stats（選手ごとにDBから取得 + 当日成績）
     const batterId = playerMap[batterName];
     if (batterId) {
+        // 常に更新するため、IDチェックの最適化は一旦外すか、
+        // または当日成績が変わった場合も更新する必要があるため、IDチェックだけでは不十分。
+        // ここでは簡易的に毎回計算する（APIリクエストはID変わった時のみに制限したいが...）
+        // APIキャッシュ戦略: batterIdが同じなら前回のAPI結果を再利用したいが、
+        // 複雑になるので毎回fetchするか、あるいはグローバル変数にキャッシュするか。
+        // ここでは lastBatterId を使ったキャッシュは維持しつつ、表示更新は毎回行う。
+        
+        let dbStats = null;
         if (batterId !== lastBatterId) {
             lastBatterId = batterId;
             try {
@@ -249,33 +260,47 @@ async function updateSeasonStats(batterName, pitcherName) {
                 if (res.ok) {
                     const rows = await res.json();
                     if (rows.length > 0) {
-                        const s = rows[0]; // 最新シーズン（season DESC）
-                        setText('batter-avg', s.batting_average != null ? Number(s.batting_average).toFixed(3) : '.---');
-                        setText('batter-hr', s.home_runs ?? 0);
-                        setText('batter-rbi', s.rbis ?? 0);
-                        setText('batter-ops', s.ops != null ? Number(s.ops).toFixed(3) : '.---');
+                        dbStats = rows[0]; // 最新シーズン
+                        lastBatterDbStats = dbStats; // Cache
                     } else {
-                        setText('batter-avg', '.---');
-                        setText('batter-hr', '0');
-                        setText('batter-rbi', '0');
-                        setText('batter-ops', '.---');
+                         lastBatterDbStats = null;
                     }
                 }
             } catch (e) {
                 console.error('Failed to fetch batter stats', e);
             }
+        } else {
+            dbStats = lastBatterDbStats;
         }
+
+        // 当日成績の集計
+        const batterIndex = state.currentBatter[offenseTeam];
+        // 名前が一致することを確認（代打などでインデックスと名前がずれる可能性は低いが念のため）
+        // しかし batterName は updateBottomStats から渡されているので一致しているはず。
+        
+        const today = calculateTodayBatterStats(state, offenseTeam, batterIndex);
+        
+        // 当日+通算の合算
+        const merged = mergeBatterStats(dbStats, today);
+        
+        setText('batter-avg', merged.avg);
+        setText('batter-hr', merged.hr);
+        setText('batter-rbi', merged.rbi);
+        setText('batter-ops', merged.ops);
+
     } else {
         lastBatterId = null;
+        lastBatterDbStats = null;
         setText('batter-avg', '.---');
         setText('batter-hr', '0');
         setText('batter-rbi', '0');
         setText('batter-ops', '.---');
     }
 
-    // Pitcher Stats（選手ごとにDBから取得）
+    // Pitcher Stats（選手ごとにDBから取得 + 当日成績）
     const pitcherId = playerMap[pitcherName];
     if (pitcherId) {
+        let dbStats = null;
         if (pitcherId !== lastPitcherId) {
             lastPitcherId = pitcherId;
             try {
@@ -283,26 +308,150 @@ async function updateSeasonStats(batterName, pitcherName) {
                 if (res.ok) {
                     const rows = await res.json();
                     if (rows.length > 0) {
-                        const s = rows[0];
-                        setText('pitcher-era', s.era != null ? Number(s.era).toFixed(2) : '-.--');
-                        const ip = parseFloat(s.innings_pitched) || 0;
-                        const k = parseInt(s.strikeouts) || 0;
-                        const k9 = ip > 0 ? ((k / ip) * 9).toFixed(2) : '-.--';
-                        setText('pitcher-k9', k9);
+                        dbStats = rows[0];
+                        lastPitcherDbStats = dbStats;
                     } else {
-                        setText('pitcher-era', '-.--');
-                        setText('pitcher-k9', '-.--');
+                        lastPitcherDbStats = null;
                     }
                 }
             } catch (e) {
                 console.error('Failed to fetch pitcher stats', e);
             }
+        } else {
+            dbStats = lastPitcherDbStats;
         }
+
+        // 当日成績（state.pitcherStats は現在登板中の投手＝pitcherNameと仮定）
+        // もしリリーフ画面などで別の投手を見ている場合は todayStats は空にすべきだが、
+        // ここでは updateBottomStats が「現在の投手」を表示している前提。
+        const pStats = state.pitcherStats ? state.pitcherStats[defenseTeam] : { innings: 0, runs: 0, strikeouts: 0 };
+        const today = {
+            ip: pStats.innings || 0,
+            er: pStats.runs || 0,
+            k: pStats.strikeouts || 0
+        };
+
+        const merged = mergePitcherStats(dbStats, today);
+
+        setText('pitcher-era', merged.era);
+        setText('pitcher-k9', merged.k9);
+
     } else {
         lastPitcherId = null;
+        lastPitcherDbStats = null;
         setText('pitcher-era', '-.--');
         setText('pitcher-k9', '-.--');
     }
+}
+
+let lastBatterDbStats = null;
+let lastPitcherDbStats = null;
+
+function calculateTodayBatterStats(state, team, batterIndex) {
+    const results = state.atBatResults[team][batterIndex] || [];
+    const rbi = (state.todayRBI && state.todayRBI[team] && state.todayRBI[team][batterIndex]) || 0;
+    
+    let ab = 0;
+    let h = 0;
+    let hr = 0;
+    let bb = 0;
+    let hbp = 0;
+    let sf = 0;
+    let tb = 0;
+    
+    results.forEach(res => {
+        // AB計算 (Walk, HBP, Sacrifice, Interference は除外)
+        if (!['walk', 'hbp', 'sacrifice'].includes(res)) {
+            ab++;
+        }
+        // Hit計算
+        if (['single', 'double', 'triple', 'homerun'].includes(res)) {
+            h++;
+        }
+        // HR
+        if (res === 'homerun') hr++;
+        
+        // その他
+        if (res === 'walk') bb++;
+        if (res === 'hbp') hbp++;
+        if (res === 'sacrifice') sf++; // 犠飛か犠打か区別していないが、一旦すべてSF扱い(OPS計算用)とするか、除外するか。便宜上ABから除外のみ。
+        
+        // TB
+        if (res === 'single') tb += 1;
+        if (res === 'double') tb += 2;
+        if (res === 'triple') tb += 3;
+        if (res === 'homerun') tb += 4;
+    });
+    
+    return { ab, h, hr, rbi, bb, hbp, sf, tb };
+}
+
+function mergeBatterStats(db, today) {
+    const sAtBats = db ? parseInt(db.at_bats || 0) : 0;
+    const sHits = db ? parseInt(db.hits || 0) : 0;
+    const sHr = db ? parseInt(db.home_runs || 0) : 0;
+    const sRbi = db ? parseInt(db.rbis || 0) : 0;
+    const sBb = db ? parseInt(db.walks || 0) : 0;
+    const sHbp = db ? parseInt(db.hit_by_pitch || 0) : 0;
+    const sSf = db ? parseInt(db.sacrifice_flies || 0) : 0;
+    // Total Bases might not be in DB struct passed here, need to approximate or assume 0 if missing
+    // DB schema has total_bases based on my check, but let's check fetch result.
+    // If not available, we can't perfectly calc SLG. Assume SLG part of OPS is static? No.
+    // Let's assume (TotalBases) ~ (Hits + ExtraBases).
+    // Or just use existing OPS and update weighted?
+    // OPS = OBP + SLG.
+    // New OPS = (Total H + Total BB + Total HBP) / (Total PA) + (Total TB) / (Total AB)
+    // If we lack Total TB from DB, we can't calc New OPS easily.
+    // fallback: use DB OPS if no today stats, else try approximation?
+    // Actually schema.sql shows `total_bases` column.
+    const sTb = db ? parseInt(db.total_bases || 0) : 0; 
+    
+    const tAb = sAtBats + today.ab;
+    const tH = sHits + today.h;
+    const tHr = sHr + today.hr;
+    const tRbi = sRbi + today.rbi;
+    
+    const avg = tAb > 0 ? (tH / tAb).toFixed(3) : '.---';
+    
+    // OPS Calc
+    // OBP = (H + BB + HBP) / (AB + BB + HBP + SF)
+    const tBb = sBb + today.bb;
+    const tHbp = sHbp + today.hbp;
+    const tSf = sSf + today.sf;
+    const tTb = sTb + today.tb;
+    
+    const pa = tAb + tBb + tHbp + tSf;
+    let ops = '.---';
+    
+    if (pa > 0 && tAb > 0) {
+        const obp = (tH + tBb + tHbp) / pa;
+        const slg = tTb / tAb;
+        ops = (obp + slg).toFixed(3);
+    } else if (db && db.ops) {
+        ops = Number(db.ops).toFixed(3); // Fallback
+    }
+
+    return {
+        avg: avg.replace('0.', '.'), // Remove leading zero
+        hr: tHr,
+        rbi: tRbi,
+        ops: ops.replace('0.', '.')
+    };
+}
+
+function mergePitcherStats(db, today) {
+    const sIp = db ? parseFloat(db.innings_pitched || 0) : 0;
+    const sEr = db ? parseInt(db.earned_runs || db.runs_allowed || 0) : 0; // Use earned_runs if available
+    const sK = db ? parseInt(db.strikeouts || 0) : 0;
+    
+    const tIp = sIp + today.ip;
+    const tEr = sEr + today.er;
+    const tK = sK + today.k;
+    
+    const era = tIp > 0 ? ((tEr * 9) / tIp).toFixed(2) : '-.--';
+    const k9 = tIp > 0 ? ((tK * 9) / tIp).toFixed(2) : '-.--';
+    
+    return { era, k9 };
 }
 
 

@@ -28,6 +28,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         // チームプルダウンを初期化
         populateTeamSelects();
         Render.generateLineupInputs(State.state, allPlayers, teamSelections);
+
+        // スコア計測の初期化（未設定の場合）
+        if (State.state.scoreAtStartOfAtBat === undefined) {
+             const currentTeam = State.state.inning.half === 'top' ? 'away' : 'home';
+             State.state.scoreAtStartOfAtBat = getTotalScore(State.state, currentTeam);
+        }
     }
     
     // UIの更新
@@ -283,7 +289,10 @@ function setupEventListeners() {
     addListener('btn-reset-game', 'click', () => {
         if (confirm('\u672C\u5F53\u306B\u8A66\u5408\u30C7\u30FC\u30BF\u3092\u30EA\u30BB\u30C3\u30C8\u3057\u307E\u3059\u304B\uFF1F\n\u3053\u306E\u64CD\u4F5C\u306F\u53D6\u308A\u6D88\u305B\u307E\u305B\u3093\u3002')) {
             State.resetState();
+            State.resetState();
             Render.generateLineupInputs(State.state);
+            const currentTeam = State.state.inning.half === 'top' ? 'away' : 'home';
+            State.state.scoreAtStartOfAtBat = getTotalScore(State.state, currentTeam); // Reset score tracker
             updateAndSave();
         }
     });
@@ -311,6 +320,32 @@ function setupEventListeners() {
             const batterId = State.playerMap[batterName];
             const pitcherId = State.playerMap[pitcherName];
             
+            // 打点(RBI)の計算
+            let rbi = 0;
+            const currentTotalScore = getTotalScore(State.state, currentTeam);
+            
+            if (result === 'homerun') {
+                // 本塁打の場合は、ランナー数＋１
+                let runners = 0;
+                if (State.state.runners.first) runners++;
+                if (State.state.runners.second) runners++;
+                if (State.state.runners.third) runners++;
+                rbi = runners + 1;
+            } else {
+                // そうでない場合は、打席開始時からの得点増分
+                const startScore = State.state.scoreAtStartOfAtBat !== undefined ? State.state.scoreAtStartOfAtBat : currentTotalScore;
+                rbi = Math.max(0, currentTotalScore - startScore);
+            }
+
+            // todayRBIに加算
+            if (!State.state.todayRBI) {
+                State.state.todayRBI = JSON.parse(JSON.stringify(Constants.DEFAULT_STATE.todayRBI));
+            }
+            if (State.state.todayRBI[currentTeam][batterIndex] === undefined) {
+                 State.state.todayRBI[currentTeam][batterIndex] = 0;
+            }
+            State.state.todayRBI[currentTeam][batterIndex] += rbi;
+
             // API送信
             if (batterId) {
                 try {
@@ -324,12 +359,12 @@ function setupEventListeners() {
                             inning: State.state.inning.number,
                             half: currentHalf,
                             result_type: convertResultToDbType(result),
-                            rbi: 0, // TODO: UIで打点を指定できるようにするか、ロジックで推定するか
+                            rbi: rbi, 
                             is_sac_fly: result === 'sacrifice' ? true : false, // 簡易
                             is_sac_bunt: false
                         })
                     });
-                    console.log('Stats recorded for', batterName);
+                    console.log('Stats recorded for', batterName, 'RBI:', rbi);
                 } catch (e) {
                     console.error('Failed to record stats', e);
                 }
@@ -339,6 +374,13 @@ function setupEventListeners() {
 
             GameLogic.recordAtBatResult(State.state, result);
             Sync.broadcastResultEvent(result, State.isAdminMode, State.state);
+
+            // 次の打者のためにスコアをリセット記録（HRの場合はrecordAtBatResultでスコアが増えるので再取得）
+            // 注意: recordAtBatResult内で batterIndex が進んでいるため、
+            // ここで取得する currentTotalScore は「次の打者」の開始時スコアとなる。
+            const newTotalScore = getTotalScore(State.state, currentTeam);
+            State.state.scoreAtStartOfAtBat = newTotalScore;
+            
             updateAndSave();
         });
     });
@@ -361,6 +403,8 @@ function convertResultToDbType(type) {
         let prevBatterIndex = State.state.currentBatter[team] - 1;
         if (prevBatterIndex < 0) prevBatterIndex = 8;
         State.state.currentBatter[team] = prevBatterIndex;
+        // 打手変更時はスコアベースラインもリセット
+        State.state.scoreAtStartOfAtBat = getTotalScore(State.state, team);
         updateAndSave();
     });
     
@@ -445,6 +489,13 @@ function updateAndSave() {
 function nextBatter() {
     const team = State.state.inning.half === 'top' ? 'away' : 'home';
     State.state.currentBatter[team] = (State.state.currentBatter[team] + 1) % 9;
+    
+    // 次の打者のためのスコアベースラインを設定
+    State.state.scoreAtStartOfAtBat = getTotalScore(State.state, team);
+}
+
+function getTotalScore(state, team) {
+    return state.scores[team].reduce((sum, s) => sum + (s || 0), 0);
 }
 
 /**
@@ -484,7 +535,20 @@ function resetPitcherTodayStats(team) {
     if (!State.state.pitcherStats) {
         State.state.pitcherStats = JSON.parse(JSON.stringify(Constants.DEFAULT_STATE.pitcherStats));
     }
-    State.state.pitcherStats[team] = { innings: 0, strikeouts: 0, walks: 0, runs: 0, pitchCount: 0, outs: 0 };
+    
+    // 相手チームの現在の総得点（＝自チーム投手の総失点）を取得
+    const opposingTeam = team === 'home' ? 'away' : 'home';
+    const currentTotalRuns = getTotalScore(State.state, opposingTeam);
+
+    State.state.pitcherStats[team] = { 
+        innings: 0, 
+        strikeouts: 0, 
+        walks: 0, 
+        runs: 0, 
+        pitchCount: 0, 
+        outs: 0,
+        runsAtStart: currentTotalRuns // 交代時点の失点を記録
+    };
 }
 
 // Global variables for master data and selections (Moved to top)

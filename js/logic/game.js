@@ -11,7 +11,7 @@ import { RESULT_LABELS } from '../data/constants.js';
 export function incrementPitchCount(state) {
     const pitchingTeam = state.inning.half === 'top' ? 'home' : 'away';
     if (!state.pitcherStats[pitchingTeam]) {
-        state.pitcherStats[pitchingTeam] = { innings: 0, strikeouts: 0, walks: 0, runs: 0, pitchCount: 0, outs: 0 };
+        state.pitcherStats[pitchingTeam] = { innings: 0, strikeouts: 0, walks: 0, runs: 0, pitchCount: 0, outs: 0, runsAtStart: 0 };
     }
     state.pitcherStats[pitchingTeam].pitchCount++;
 }
@@ -76,7 +76,7 @@ export function advanceInning(state) {
 export function recordStrikeout(state) {
     const pitchingTeam = state.inning.half === 'top' ? 'home' : 'away';
     if (!state.pitcherStats[pitchingTeam]) {
-        state.pitcherStats[pitchingTeam] = { innings: 0, strikeouts: 0, walks: 0, runs: 0, pitchCount: 0, outs: 0 };
+        state.pitcherStats[pitchingTeam] = { innings: 0, strikeouts: 0, walks: 0, runs: 0, pitchCount: 0, outs: 0, runsAtStart: 0 };
     }
     state.pitcherStats[pitchingTeam].strikeouts++;
 }
@@ -88,7 +88,7 @@ export function recordStrikeout(state) {
 export function recordWalk(state) {
     const pitchingTeam = state.inning.half === 'top' ? 'home' : 'away';
     if (!state.pitcherStats[pitchingTeam]) {
-        state.pitcherStats[pitchingTeam] = { innings: 0, strikeouts: 0, walks: 0, runs: 0, pitchCount: 0, outs: 0 };
+        state.pitcherStats[pitchingTeam] = { innings: 0, strikeouts: 0, walks: 0, runs: 0, pitchCount: 0, outs: 0, runsAtStart: 0 };
     }
     state.pitcherStats[pitchingTeam].walks++;
 }
@@ -100,7 +100,7 @@ export function recordWalk(state) {
 export function recordOut(state) {
     const pitchingTeam = state.inning.half === 'top' ? 'home' : 'away';
     if (!state.pitcherStats[pitchingTeam]) {
-        state.pitcherStats[pitchingTeam] = { innings: 0, strikeouts: 0, walks: 0, runs: 0, pitchCount: 0, outs: 0 };
+        state.pitcherStats[pitchingTeam] = { innings: 0, strikeouts: 0, walks: 0, runs: 0, pitchCount: 0, outs: 0, runsAtStart: 0 };
     }
     state.pitcherStats[pitchingTeam].outs++;
     updatePitcherStats(state, pitchingTeam);
@@ -114,16 +114,17 @@ export function recordOut(state) {
 export function updatePitcherStats(state, team) {
     if (!state.pitcherStats) {
         state.pitcherStats = {
-            home: { innings: 0, strikeouts: 0, walks: 0, runs: 0, pitchCount: 0, outs: 0 },
-            away: { innings: 0, strikeouts: 0, walks: 0, runs: 0, pitchCount: 0, outs: 0 }
+            home: { innings: 0, strikeouts: 0, walks: 0, runs: 0, pitchCount: 0, outs: 0, runsAtStart: 0 },
+            away: { innings: 0, strikeouts: 0, walks: 0, runs: 0, pitchCount: 0, outs: 0, runsAtStart: 0 }
         };
     }
-    
-    // 失点の計算（相手チームの得点合計）
+
+    // 失点の計算（相手チームの得点合計 - 登板時の得点）
     const opposingTeam = team === 'home' ? 'away' : 'home';
     const totalRuns = state.scores[opposingTeam].reduce((sum, score) => sum + (score || 0), 0);
-    state.pitcherStats[team].runs = totalRuns;
-    
+    const runsAtStart = state.pitcherStats[team].runsAtStart || 0;
+    state.pitcherStats[team].runs = totalRuns - runsAtStart;
+
     // 投球回数の計算（アウト数から）
     const outs = state.pitcherStats[team].outs || 0;
     const fullInnings = Math.floor(outs / 3);
