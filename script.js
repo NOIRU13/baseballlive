@@ -61,10 +61,10 @@ const DEFAULT_STATE = {
         home: '',
         away: ''
     },
-    // 投手成績
+    // 投手成績（自動計算）
     pitcherStats: {
-        home: { innings: 0, strikeouts: 0, runs: 0 },
-        away: { innings: 0, strikeouts: 0, runs: 0 }
+        home: { innings: 0, strikeouts: 0, runs: 0, pitchCount: 0, outs: 0 },
+        away: { innings: 0, strikeouts: 0, runs: 0, pitchCount: 0, outs: 0 }
     }
 };
 
@@ -627,6 +627,9 @@ function updateBottomStats() {
 
     // --- 投手成績の更新 ---
     if (state.pitcherStats && state.pitcherStats[defenseTeam]) {
+        // 投手成績を自動計算
+        updatePitcherStats(defenseTeam);
+        
         var pitcherInnings = document.getElementById('pitcher-innings');
         var pitcherStrikeouts = document.getElementById('pitcher-strikeouts');
         var pitcherRuns = document.getElementById('pitcher-runs');
@@ -727,6 +730,7 @@ function setupEventListeners() {
     // ボール
     addListener('btn-ball', 'click', function() {
         state.count.ball++;
+        incrementPitchCount(); // 投球数カウント
         if (state.count.ball >= 4) {
             // フォアボール（4つ目のボール） - 一塁ランナー追加 & カウントリセット
             state.runners.first = true;
@@ -748,8 +752,10 @@ function setupEventListeners() {
     // ストライク
     addListener('btn-strike', 'click', function() {
         state.count.strike++;
+        incrementPitchCount(); // 投球数カウント
         if (state.count.strike >= 3) {
             // 三振（3つ目のストライク） - アウト追加 & カウントリセット
+            recordStrikeout(); // 三振を記録
             addOut();
             // 次の打者へ進める
             var team = state.inning.half === 'top' ? 'away' : 'home';
@@ -971,15 +977,25 @@ function generateLineupInputs() {
         // 1-9番の入力欄
         for (let i = 0; i < 9; i++) {
             const row = document.createElement('div');
-            row.className = 'lineup-input-row';
+            row.className = 'lineup-item';  // 新しいクラス名
             
             // 打順番号
             const num = document.createElement('span');
-            num.className = 'lineup-num';
+            num.className = 'lineup-number';  // 新しいクラス名
             num.textContent = (i + 1);
             row.appendChild(num);
             
-            // 守備位置セレクト
+            // 選手名入力（名前を先に配置）
+            const nameInput = document.createElement('input');
+            nameInput.type = 'text';
+            nameInput.className = 'lineup-input-name';
+            nameInput.dataset.team = team;
+            nameInput.dataset.order = i;
+            nameInput.value = state.lineup[team][i] || '';
+            nameInput.placeholder = '選手名';
+            row.appendChild(nameInput);
+            
+            // 守備位置セレクト（後に配置）
             const posSelect = document.createElement('select');
             posSelect.className = 'lineup-input-pos';
             posSelect.dataset.team = team;
@@ -996,16 +1012,6 @@ function generateLineupInputs() {
             });
             row.appendChild(posSelect);
             
-            // 選手名入力
-            const nameInput = document.createElement('input');
-            nameInput.type = 'text';
-            nameInput.className = 'lineup-input-name';
-            nameInput.dataset.team = team;
-            nameInput.dataset.order = i;
-            nameInput.value = state.lineup[team][i] || '';
-            nameInput.placeholder = '選手名';
-            row.appendChild(nameInput);
-            
             container.appendChild(row);
         }
 
@@ -1013,36 +1019,38 @@ function generateLineupInputs() {
         // 投手入力欄 (DH用)
         // ----------------------------------------
         const pRow = document.createElement('div');
-        pRow.className = 'lineup-input-row pitcher-row';
+        pRow.className = 'lineup-item pitcher-row';  // 新しいクラス名
         pRow.style.marginTop = '10px';
         pRow.style.paddingTop = '10px';
-        pRow.style.borderTop = '1px dashed #ccc';
+        pRow.style.borderTop = '1px dashed rgba(255, 215, 0, 0.3)';
         
         // ラベル
         const pLabel = document.createElement('span');
-        pLabel.className = 'lineup-num';
-        pLabel.textContent = 'P'; // 投
+        pLabel.className = 'lineup-number';  // 新しいクラス名
+        pLabel.textContent = 'P';
         pLabel.style.fontWeight = 'bold';
         pLabel.style.color = '#e74c3c';
         pRow.appendChild(pLabel);
+        
+        // 投手名入力
+        const pInput = document.createElement('input');
+        pInput.type = 'text';
+        pInput.className = 'lineup-input-pitcher';
+        pInput.dataset.team = team;
+        pInput.value = state.pitcher ? (state.pitcher[team] || '') : '';
+        pInput.placeholder = '投手名（DH制・先発）';
+        pRow.appendChild(pInput);
         
         // 守備位置固定表示
         const pPos = document.createElement('span');
         pPos.className = 'lineup-pos-fixed';
         pPos.textContent = '投';
         pPos.style.display = 'inline-block';
-        pPos.style.width = '50px'; // selectの幅に合わせる調整
+        pPos.style.width = '55px'; // selectの幅に合わせる
         pPos.style.textAlign = 'center';
+        pPos.style.fontSize = '11px';
+        pPos.style.color = '#ffd700';
         pRow.appendChild(pPos);
-        
-        // 投手名入力
-        const pInput = document.createElement('input');
-        pInput.type = 'text';
-        pInput.className = 'lineup-input-pitcher'; // 識別用クラス
-        pInput.dataset.team = team;
-        pInput.value = state.pitcher ? (state.pitcher[team] || '') : '';
-        pInput.placeholder = '投手名（DH制・先発）';
-        pRow.appendChild(pInput);
         
         container.appendChild(pRow);
     });
@@ -1118,6 +1126,21 @@ function recordAtBatResult(resultCode) {
     // ヒット系の場合、H+1
     if (['single', 'double', 'triple', 'homerun'].includes(resultCode)) {
         state.stats[team].h++;
+    }
+    
+    // 投手成績の更新
+    // 三振の場合
+    if (resultCode === 'strikeout') {
+        recordStrikeout();
+        recordOut();
+    }
+    // その他のアウト系の結果
+    else if (['groundout', 'flyout', 'lineout', 'dp'].includes(resultCode)) {
+        recordOut();
+        // 併殺の場合は2アウト
+        if (resultCode === 'dp') {
+            recordOut();
+        }
     }
     
     // カウントリセット
@@ -1253,6 +1276,7 @@ function resetCount() {
  */
 function addOut() {
     state.count.out++;
+    recordOut(); // 投手成績にアウトを記録
     resetCount();
     if (state.count.out >= 3) {
         // 3アウトチェンジ
@@ -1285,4 +1309,66 @@ function advanceInning() {
     }
 }
 
+// ==================== 投手成績自動計算 ====================
+/**
+ * 投手成績を自動計算する
+ * - 投球数: ボール・ストライクのカウント
+ * - 三振数: 三振の結果
+ * - 投球回数: アウト数から計算（3アウト = 1イニング）
+ * - 失点: 相手チームの得点
+ */
+function updatePitcherStats(team) {
+    if (!state.pitcherStats) {
+        state.pitcherStats = {
+            home: { innings: 0, strikeouts: 0, runs: 0, pitchCount: 0, outs: 0 },
+            away: { innings: 0, strikeouts: 0, runs: 0, pitchCount: 0, outs: 0 }
+        };
+    }
+    
+    // 失点の計算（相手チームの得点合計）
+    const opposingTeam = team === 'home' ? 'away' : 'home';
+    const totalRuns = state.scores[opposingTeam].reduce((sum, score) => sum + (score || 0), 0);
+    state.pitcherStats[team].runs = totalRuns;
+    
+    // 投球回数の計算（アウト数から）
+    // 3アウト = 1イニング、1アウト = 0.1、2アウト = 0.2
+    const outs = state.pitcherStats[team].outs || 0;
+    const fullInnings = Math.floor(outs / 3);
+    const partialOuts = outs % 3;
+    state.pitcherStats[team].innings = fullInnings + (partialOuts * 0.1);
+}
+
+/**
+ * 投球数を増やす（ボール・ストライクのカウント時）
+ */
+function incrementPitchCount() {
+    const pitchingTeam = state.inning.half === 'top' ? 'home' : 'away';
+    if (!state.pitcherStats[pitchingTeam]) {
+        state.pitcherStats[pitchingTeam] = { innings: 0, strikeouts: 0, runs: 0, pitchCount: 0, outs: 0 };
+    }
+    state.pitcherStats[pitchingTeam].pitchCount++;
+}
+
+/**
+ * 三振を記録（投手成績に反映）
+ */
+function recordStrikeout() {
+    const pitchingTeam = state.inning.half === 'top' ? 'home' : 'away';
+    if (!state.pitcherStats[pitchingTeam]) {
+        state.pitcherStats[pitchingTeam] = { innings: 0, strikeouts: 0, runs: 0, pitchCount: 0, outs: 0 };
+    }
+    state.pitcherStats[pitchingTeam].strikeouts++;
+}
+
+/**
+ * アウトを記録（投手成績に反映）
+ */
+function recordOut() {
+    const pitchingTeam = state.inning.half === 'top' ? 'home' : 'away';
+    if (!state.pitcherStats[pitchingTeam]) {
+        state.pitcherStats[pitchingTeam] = { innings: 0, strikeouts: 0, runs: 0, pitchCount: 0, outs: 0 };
+    }
+    state.pitcherStats[pitchingTeam].outs++;
+    updatePitcherStats(pitchingTeam);
+}
 

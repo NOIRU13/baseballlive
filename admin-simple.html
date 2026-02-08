@@ -1,0 +1,401 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>簡易操作パネル - Baseball Live</title>
+    <link rel="stylesheet" href="style.css" />
+    <style>
+      /* 小ウィンドウ専用スタイル（800x600に最適化・横並べレイアウト） */
+      body.simple-mode {
+        margin: 0;
+        padding: 8px;
+        background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+        font-family: 'Noto Sans JP', sans-serif;
+        overflow-y: auto;
+        max-width: 800px;
+        max-height: 600px;
+      }
+      
+      .simple-panel {
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 10px;
+        padding: 10px;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+      }
+      
+      .simple-title {
+        color: #ffd700;
+        font-size: 16px;
+        font-weight: bold;
+        text-align: center;
+        margin-bottom: 10px;
+        text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+      }
+      
+      /* 横並べレイアウト用のコンテナ */
+      .simple-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: 10px;
+        margin-bottom: 10px;
+      }
+      
+      .simple-section {
+        background: rgba(255, 255, 255, 0.03);
+        border-radius: 6px;
+        padding: 8px;
+        border: 1px solid rgba(255, 215, 0, 0.2);
+      }
+      
+      .simple-section h3 {
+        color: #ffd700;
+        font-size: 13px;
+        margin: 0 0 8px 0;
+        font-weight: 600;
+        text-align: center;
+      }
+      
+      .count-controls {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+      
+      .control-group {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+      
+      .control-label {
+        color: #fff;
+        font-size: 11px;
+        font-weight: 500;
+        text-align: center;
+      }
+      
+      .btn-group {
+        display: flex;
+        gap: 4px;
+        justify-content: center;
+      }
+      
+      .btn {
+        padding: 6px 10px;
+        border: none;
+        border-radius: 5px;
+        font-size: 11px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s;
+        color: #fff;
+        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+      }
+      
+      .btn-ball {
+        background: linear-gradient(135deg, #27ae60, #229954);
+      }
+      
+      .btn-ball:hover {
+        background: linear-gradient(135deg, #229954, #1e8449);
+        transform: translateY(-1px);
+      }
+      
+      .btn-strike {
+        background: linear-gradient(135deg, #e74c3c, #c0392b);
+      }
+      
+      .btn-strike:hover {
+        background: linear-gradient(135deg, #c0392b, #a93226);
+        transform: translateY(-1px);
+      }
+      
+      .btn-out {
+        background: linear-gradient(135deg, #95a5a6, #7f8c8d);
+      }
+      
+      .btn-out:hover {
+        background: linear-gradient(135deg, #7f8c8d, #707b7c);
+        transform: translateY(-1px);
+      }
+      
+      .btn-reset {
+        background: linear-gradient(135deg, #34495e, #2c3e50);
+        font-size: 9px;
+        padding: 4px 8px;
+      }
+      
+      .btn-reset:hover {
+        background: linear-gradient(135deg, #2c3e50, #1c2833);
+      }
+      
+      .runner-controls-simple {
+        display: flex;
+        justify-content: center;
+        margin-bottom: 6px;
+      }
+      
+      .diamond-simple {
+        position: relative;
+        width: 90px;
+        height: 90px;
+        transform: rotate(45deg);
+        margin: 10px auto;
+      }
+      
+      .base-btn {
+        position: absolute;
+        width: 26px;
+        height: 26px;
+        background: rgba(255, 255, 255, 0.2);
+        border: 2px solid rgba(255, 215, 0, 0.4);
+        border-radius: 4px;
+        cursor: pointer;
+        transition: all 0.3s;
+      }
+      
+      .base-btn.active {
+        background: linear-gradient(135deg, #ffd700, #ffed4e);
+        border-color: #ffd700;
+        box-shadow: 0 0 20px rgba(255, 215, 0, 0.8);
+      }
+      
+      .base-btn.first {
+        bottom: 0;
+        right: 0;
+      }
+      
+      .base-btn.second {
+        top: 0;
+        right: 0;
+      }
+      
+      .base-btn.third {
+        top: 0;
+        left: 0;
+      }
+      
+      .result-buttons {
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+      }
+      
+      .result-row {
+        display: flex;
+        flex-direction: column;
+        gap: 3px;
+      }
+      
+      .result-category {
+        color: #ffd700;
+        font-size: 10px;
+        font-weight: 600;
+        text-align: center;
+      }
+      
+      .btn-result {
+        flex: 1;
+        padding: 5px;
+        font-size: 10px;
+      }
+      
+      .btn-hit {
+        background: linear-gradient(135deg, #3498db, #2980b9);
+      }
+      
+      .btn-hit:hover {
+        background: linear-gradient(135deg, #2980b9, #21618c);
+        transform: translateY(-1px);
+      }
+      
+      .btn-homerun {
+        background: linear-gradient(135deg, #e74c3c, #c0392b);
+      }
+      
+      .btn-homerun:hover {
+        background: linear-gradient(135deg, #c0392b, #a93226);
+        transform: translateY(-1px);
+      }
+      
+      .btn-walk {
+        background: linear-gradient(135deg, #f39c12, #d68910);
+      }
+      
+      .btn-walk:hover {
+        background: linear-gradient(135deg, #d68910, #b9770e);
+        transform: translateY(-1px);
+      }
+      
+      .btn-out-result {
+        background: linear-gradient(135deg, #95a5a6, #7f8c8d);
+      }
+      
+      .btn-out-result:hover {
+        background: linear-gradient(135deg, #7f8c8d, #707b7c);
+        transform: translateY(-1px);
+      }
+      
+      .btn-other {
+        background: linear-gradient(135deg, #9b59b6, #8e44ad);
+      }
+      
+      .btn-other:hover {
+        background: linear-gradient(135deg, #8e44ad, #7d3c98);
+        transform: translateY(-1px);
+      }
+      
+      .btn-full {
+        width: 100%;
+        margin-top: 5px;
+      }
+      
+      .btn-warning {
+        background: linear-gradient(135deg, #e67e22, #d35400);
+      }
+      
+      .btn-warning:hover {
+        background: linear-gradient(135deg, #d35400, #ba4a00);
+      }
+      
+      .current-info {
+        background: rgba(255, 215, 0, 0.1);
+        border: 1px solid rgba(255, 215, 0, 0.3);
+        border-radius: 5px;
+        padding: 6px;
+        margin-bottom: 8px;
+        text-align: center;
+      }
+      
+      .current-info-label {
+        color: #ffd700;
+        font-size: 10px;
+        margin-bottom: 3px;
+      }
+      
+      .current-info-value {
+        color: #fff;
+        font-size: 14px;
+        font-weight: bold;
+      }
+    </style>
+  </head>
+  <body class="admin-mode simple-mode">
+    <div class="simple-panel">
+      <h1 class="simple-title">⚾ 簡易操作パネル</h1>
+      
+      <!-- 現在の状況表示 -->
+      <div class="current-info">
+        <div class="current-info-label">現在の打者</div>
+        <div class="current-info-value" id="current-batter-name">---</div>
+      </div>
+      
+      <!-- 横並べグリッドレイアウト -->
+      <div class="simple-grid">
+        <!-- カウント操作 -->
+        <section class="simple-section">
+          <h3>カウント</h3>
+          <div class="count-controls">
+            <div class="control-group">
+              <span class="control-label">ボール</span>
+              <div class="btn-group">
+                <button id="btn-ball" class="btn btn-ball">B +</button>
+                <button id="btn-ball-reset" class="btn btn-reset">リセット</button>
+              </div>
+            </div>
+            <div class="control-group">
+              <span class="control-label">ストライク</span>
+              <div class="btn-group">
+                <button id="btn-strike" class="btn btn-strike">S +</button>
+                <button id="btn-strike-reset" class="btn btn-reset">リセット</button>
+              </div>
+            </div>
+            <div class="control-group">
+              <span class="control-label">アウト</span>
+              <div class="btn-group">
+                <button id="btn-out" class="btn btn-out">O +</button>
+                <button id="btn-out-reset" class="btn btn-reset">リセット</button>
+              </div>
+            </div>
+          </div>
+          <button id="btn-count-reset" class="btn btn-full btn-warning">
+            カウントリセット
+          </button>
+        </section>
+        
+        <!-- ランナー操作 -->
+        <section class="simple-section">
+          <h3>ランナー</h3>
+          <div class="runner-controls-simple">
+            <div class="diamond-simple">
+              <button id="btn-runner-2" class="base-btn second" title="2塁"></button>
+              <button id="btn-runner-3" class="base-btn third" title="3塁"></button>
+              <button id="btn-runner-1" class="base-btn first" title="1塁"></button>
+            </div>
+          </div>
+          <button id="btn-runner-clear" class="btn btn-full btn-warning">
+            ランナークリア
+          </button>
+        </section>
+        
+        <!-- 打席結果入力（上半分） -->
+        <section class="simple-section">
+          <h3>打席結果 (1/2)</h3>
+          <div class="result-buttons">
+            <div class="result-row">
+              <span class="result-category">安打</span>
+              <div class="btn-group">
+                <button data-result="single" class="btn btn-result btn-hit">単打</button>
+                <button data-result="double" class="btn btn-result btn-hit">二塁打</button>
+              </div>
+              <div class="btn-group">
+                <button data-result="triple" class="btn btn-result btn-hit">三塁打</button>
+                <button data-result="homerun" class="btn btn-result btn-homerun">本塁打</button>
+              </div>
+            </div>
+            <div class="result-row">
+              <span class="result-category">出塁</span>
+              <div class="btn-group">
+                <button data-result="walk" class="btn btn-result btn-walk">四球</button>
+                <button data-result="hbp" class="btn btn-result btn-walk">死球</button>
+              </div>
+              <div class="btn-group">
+                <button data-result="error" class="btn btn-result btn-other">エラー</button>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+      
+      <!-- 打席結果入力（下半分） - フルワイド -->
+      <section class="simple-section">
+        <h3>打席結果 (2/2)</h3>
+        <div class="result-buttons">
+          <div class="result-row">
+            <span class="result-category">凡退</span>
+            <div class="btn-group">
+              <button data-result="strikeout" class="btn btn-result btn-out-result">三振</button>
+              <button data-result="groundout" class="btn btn-result btn-out-result">ゴロ</button>
+              <button data-result="flyout" class="btn btn-result btn-out-result">フライ</button>
+              <button data-result="lineout" class="btn btn-result btn-out-result">ライナー</button>
+            </div>
+          </div>
+          <div class="result-row">
+            <span class="result-category">その他</span>
+            <div class="btn-group">
+              <button data-result="sacrifice" class="btn btn-result btn-other">犠打</button>
+              <button data-result="fc" class="btn btn-result btn-other">FC</button>
+              <button data-result="dp" class="btn btn-result btn-out-result">併殺</button>
+            </div>
+          </div>
+        </div>
+        <button id="btn-undo-result" class="btn btn-full btn-warning">
+          直前の結果を取り消す
+        </button>
+      </section>
+    </div>
+    
+    <script src="script.js"></script>
+  </body>
+</html>

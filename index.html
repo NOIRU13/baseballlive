@@ -156,6 +156,50 @@
       window.addEventListener('resize', fitToWindow);
       window.addEventListener('load', fitToWindow);
     </script>
+    
+    <!-- 簡易操作パネルと試合管理パネルを自動で開く -->
+    <script>
+      // ページ読み込み時に2つのウィンドウを開く
+      window.addEventListener('load', function() {
+        console.log('ページ読み込み完了 - ポップアップを開きます');
+        
+        try {
+          // 1. 簡易操作パネルを開く（800x600、左側）
+          const simpleWindow = window.open(
+            'admin-simple.html',
+            'simplePanel',
+            'width=800,height=600,left=50,top=50,resizable=yes,scrollbars=yes'
+          );
+          
+          if (simpleWindow) {
+            console.log('簡易操作パネルを開きました');
+          } else {
+            console.error('簡易操作パネルがブロックされました');
+          }
+          
+          // 2. 試合管理パネルを開く（600x600、右側に配置）
+          setTimeout(function() {
+            const controlWindow = window.open(
+              'admin-control.html',
+              'controlPanel',
+              'width=600,height=600,left=870,top=50,resizable=yes,scrollbars=yes'
+            );
+            
+            if (controlWindow) {
+              controlWindow.focus();
+              console.log('試合管理パネルを開きました');
+            } else {
+              console.error('試合管理パネルがブロックされました');
+            }
+          }, 500); // 500ms遅延
+          
+        } catch (error) {
+          console.error('ポップアップを開く際にエラーが発生しました:', error);
+          alert('操作パネルを開くには、ブラウザのポップアップブロックを解除してください。');
+        }
+      });
+    </script>
+    
     <script src="script.js"></script>
   </body>
 </html>

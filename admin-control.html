@@ -1,0 +1,455 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>試合管理パネル - Baseball Live</title>
+    <link rel="stylesheet" href="style.css" />
+    <style>
+      /* 小ウィンドウ専用スタイル（600x600に最適化・左右分割レイアウト） */
+      body.admin-mode {
+        margin: 0;
+        padding: 8px;
+        background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+        font-family: 'Noto Sans JP', sans-serif;
+        overflow-y: auto;
+        max-width: 600px;
+        max-height: 600px;
+      }
+      
+      .control-panel {
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 10px;
+        padding: 8px;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+      
+      .panel-title {
+        color: #ffd700;
+        font-size: 14px;
+        font-weight: bold;
+        text-align: center;
+        margin: 0;
+        text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+      }
+      
+      /* メインレイアウト: 左右2カラム */
+      .main-layout {
+        display: grid;
+        grid-template-columns: 280px 1fr;
+        gap: 8px;
+        flex: 1;
+      }
+      
+      /* 左カラム: 操作系 */
+      .left-column {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+      
+      /* 右カラム: 選手名入力 */
+      .right-column {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+      
+      .control-section {
+        background: rgba(255, 255, 255, 0.03);
+        border-radius: 6px;
+        padding: 6px;
+        border: 1px solid rgba(255, 215, 0, 0.2);
+      }
+      
+      .control-section h2 {
+        color: #ffd700;
+        font-size: 11px;
+        margin: 0 0 6px 0;
+        font-weight: 600;
+        text-align: center;
+      }
+      
+      /* リンクセクション */
+      .link-section {
+        display: flex;
+        gap: 6px;
+      }
+      
+      .btn-link {
+        flex: 1;
+        padding: 6px;
+        font-size: 10px;
+        text-decoration: none;
+        display: block;
+        text-align: center;
+      }
+      
+      /* チーム名入力 */
+      .team-inputs {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+      
+      .input-group {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+      }
+      
+      .input-group label {
+        color: #fff;
+        font-size: 9px;
+        font-weight: 500;
+      }
+      
+      .input-group input {
+        padding: 4px;
+        border: 1px solid rgba(255, 215, 0, 0.3);
+        border-radius: 4px;
+        background: rgba(255, 255, 255, 0.1);
+        color: #fff;
+        font-size: 10px;
+      }
+      
+      /* イニング操作 */
+      .inning-controls {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+      }
+      
+      .inning-info {
+        color: #ffd700;
+        font-size: 12px;
+        font-weight: bold;
+        min-width: 50px;
+        text-align: center;
+      }
+      
+      .btn-inning {
+        padding: 4px 8px;
+        font-size: 9px;
+      }
+      
+      /* 得点操作 */
+      .score-controls {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 4px;
+      }
+      
+      .score-team {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 4px;
+      }
+      
+      .team-label {
+        color: #ffd700;
+        font-size: 10px;
+        font-weight: 600;
+      }
+      
+      .current-score {
+        color: #fff;
+        font-size: 16px;
+        font-weight: bold;
+        min-width: 30px;
+        text-align: center;
+      }
+      
+      .btn-score {
+        padding: 4px 12px;
+        font-size: 11px;
+      }
+      
+      /* R/H/E操作 */
+      .rhe-controls {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+      
+      .rhe-team-controls {
+        display: flex;
+        flex-direction: column;
+        gap: 3px;
+      }
+      
+      .btn-stat,
+      .btn-stat-minus {
+        padding: 3px 6px;
+        font-size: 9px;
+      }
+      
+      /* 選手名入力（右カラム） */
+      .lineup-section {
+        background: rgba(255, 255, 255, 0.03);
+        border-radius: 6px;
+        padding: 6px;
+        border: 1px solid rgba(255, 215, 0, 0.2);
+        flex: 1;
+        overflow-y: auto;
+      }
+      
+      .lineup-team-title {
+        color: #ffd700;
+        font-size: 12px;
+        margin: 0 0 8px 0;
+        font-weight: 600;
+        text-align: center;
+      }
+      
+      .lineup-input-panel {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+      
+      .lineup-item {
+        display: flex;
+        gap: 5px;
+        align-items: center;
+      }
+      
+      .lineup-number {
+        color: #ffd700;
+        font-size: 12px;
+        font-weight: bold;
+        min-width: 20px;
+      }
+      
+      .lineup-item input {
+        flex: 1;
+        padding: 6px;
+        border: 1px solid rgba(255, 215, 0, 0.2);
+        border-radius: 4px;
+        background: rgba(255, 255, 255, 0.05);
+        color: #fff;
+        font-size: 13px;
+      }
+      
+      .lineup-item select {
+        padding: 6px;
+        border: 1px solid rgba(255, 215, 0, 0.2);
+        border-radius: 4px;
+        background: rgba(255, 255, 255, 0.1);
+        color: #fff;
+        font-size: 11px;
+        width: 55px;
+      }
+      
+      /* 打者操作 */
+      .at-bat-info {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 4px;
+        margin-bottom: 6px;
+      }
+      
+      .current-batter-info {
+        display: flex;
+        gap: 6px;
+        align-items: center;
+      }
+      
+      .batter-order {
+        color: #ffd700;
+        font-size: 14px;
+        font-weight: bold;
+      }
+      
+      .batter-name {
+        color: #fff;
+        font-size: 12px;
+        font-weight: bold;
+      }
+      
+      .at-bat-label {
+        color: #ffd700;
+        font-size: 9px;
+      }
+      
+      .batter-nav {
+        display: flex;
+        gap: 6px;
+        justify-content: center;
+      }
+      
+      .btn-batter-nav {
+        padding: 4px 8px;
+        font-size: 9px;
+      }
+      
+      /* ボタン共通スタイル */
+      .btn {
+        border: none;
+        border-radius: 5px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s;
+        color: #fff;
+        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+        background: linear-gradient(135deg, #3498db, #2980b9);
+      }
+      
+      .btn:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+      }
+      
+      .btn-group {
+        display: flex;
+        gap: 4px;
+        justify-content: center;
+      }
+      
+      .btn-full {
+        width: 100%;
+        padding: 6px;
+        font-size: 10px;
+      }
+      
+      .btn-danger {
+        background: linear-gradient(135deg, #e74c3c, #c0392b);
+      }
+      
+      .btn-danger:hover {
+        background: linear-gradient(135deg, #c0392b, #a93226);
+      }
+    </style>
+  </head>
+  <body class="admin-mode">
+    <div class="control-panel">
+      <h1 class="panel-title">⚾ 試合管理パネル</h1>
+      
+      <!-- リンクセクション -->
+      <section class="control-section link-section">
+        <a href="index.html" target="_blank" class="btn btn-link">📺 スコアボード</a>
+        <a href="admin-simple.html" target="_blank" class="btn btn-link">🎮 簡易操作</a>
+      </section>
+      
+      <!-- メインレイアウト: 左右2カラム -->
+      <div class="main-layout">
+        <!-- 左カラム: 操作系 -->
+        <div class="left-column">
+          <!-- チーム名編集 -->
+          <section class="control-section">
+            <h2>チーム名</h2>
+            <div class="team-inputs">
+              <div class="input-group">
+                <label for="away-name">先攻</label>
+                <input type="text" id="away-name" placeholder="アウェイ" maxlength="10" />
+              </div>
+              <div class="input-group">
+                <label for="home-name">後攻</label>
+                <input type="text" id="home-name" placeholder="ホーム" maxlength="10" />
+              </div>
+            </div>
+          </section>
+          
+          <!-- イニング操作 -->
+          <section class="control-section">
+            <h2>イニング</h2>
+            <div class="inning-controls">
+              <button id="btn-inning-prev" class="btn btn-inning">◀</button>
+              <span class="inning-info" id="inning-info">1回 表</span>
+              <button id="btn-inning-next" class="btn btn-inning">▶</button>
+            </div>
+          </section>
+          
+          <!-- 得点操作 -->
+          <section class="control-section">
+            <h2>得点</h2>
+            <div class="score-controls">
+              <span class="team-label" id="scoring-team-label">攻撃チーム</span>
+              <div class="btn-group">
+                <button id="btn-score-minus" class="btn btn-score">−</button>
+                <span id="current-inning-score" class="current-score">0</span>
+                <button id="btn-score-plus" class="btn btn-score">＋</button>
+              </div>
+            </div>
+          </section>
+          
+          <!-- R/H/E操作 -->
+          <section class="control-section">
+            <h2>H / E</h2>
+            <div class="rhe-controls">
+              <div class="rhe-team-controls">
+                <span class="team-label">先攻</span>
+                <div class="btn-group">
+                  <button data-team="away" data-stat="h" class="btn btn-stat">H+</button>
+                  <button data-team="away" data-stat="h" data-action="minus" class="btn btn-stat-minus">H−</button>
+                  <button data-team="away" data-stat="e" class="btn btn-stat">E+</button>
+                  <button data-team="away" data-stat="e" data-action="minus" class="btn btn-stat-minus">E−</button>
+                </div>
+              </div>
+              <div class="rhe-team-controls">
+                <span class="team-label">後攻</span>
+                <div class="btn-group">
+                  <button data-team="home" data-stat="h" class="btn btn-stat">H+</button>
+                  <button data-team="home" data-stat="h" data-action="minus" class="btn btn-stat-minus">H−</button>
+                  <button data-team="home" data-stat="e" class="btn btn-stat">E+</button>
+                  <button data-team="home" data-stat="e" data-action="minus" class="btn btn-stat-minus">E−</button>
+                </div>
+              </div>
+            </div>
+          </section>
+          
+          <!-- 打者操作 -->
+          <section class="control-section">
+            <h2>打者操作</h2>
+            <div class="at-bat-info">
+              <div class="current-batter-info">
+                <span class="batter-order" id="current-batter-order">1</span>
+                <span class="batter-name" id="current-batter-name">---</span>
+              </div>
+              <div class="at-bat-label">現在の打者</div>
+            </div>
+            <div class="batter-nav">
+              <button id="btn-prev-batter" class="btn btn-batter-nav">◀ 前</button>
+              <button id="btn-next-batter" class="btn btn-batter-nav">次 ▶</button>
+            </div>
+          </section>
+          
+          <!-- リセット -->
+          <section class="control-section">
+            <button id="btn-reset-game" class="btn btn-full btn-danger">
+              🔄 全リセット
+            </button>
+          </section>
+        </div>
+        
+        <!-- 右カラム: 選手名入力 -->
+        <div class="right-column">
+          <!-- 先攻チーム -->
+          <section class="lineup-section">
+            <h3 class="lineup-team-title">先攻（アウェイ）打順</h3>
+            <div id="lineup-input-away" class="lineup-input-panel">
+              <!-- 動的に生成 -->
+            </div>
+          </section>
+          
+          <!-- 後攻チーム -->
+          <section class="lineup-section">
+            <h3 class="lineup-team-title">後攻（ホーム）打順</h3>
+            <div id="lineup-input-home" class="lineup-input-panel">
+              <!-- 動的に生成 -->
+            </div>
+          </section>
+        </div>
+      </div>
+    </div>
+    
+    <script src="script.js"></script>
+  </body>
+</html>
