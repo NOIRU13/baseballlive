@@ -25,6 +25,42 @@
       <!-- ==================== 中央：映像エリア（透明） ==================== -->
       <div class="center-space">
         <!-- 16:9 映像エリア -->
+
+        <!-- 中央フィールド表示：扇状球場 + ランナー + BSO -->
+        <div class="center-field-display">
+          <!-- 扇状の球場ライン -->
+          <div class="field-fan-shape">
+            <!-- BSO表示（ピッチャーマウンド位置） -->
+            <div class="bso-center">
+              <div class="count-row">
+                <span class="count-label b">B</span>
+                <div class="count-dots" id="ball-dots">
+                  <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+                </div>
+              </div>
+              <div class="count-row">
+                <span class="count-label s">S</span>
+                <div class="count-dots" id="strike-dots">
+                  <span class="dot"></span><span class="dot"></span>
+                </div>
+              </div>
+              <div class="count-row">
+                <span class="count-label o">O</span>
+                <div class="count-dots" id="out-dots">
+                  <span class="dot"></span><span class="dot"></span>
+                </div>
+              </div>
+            </div>
+
+            <!-- ランナーダイヤモンド -->
+            <div class="runner-diamond-center">
+              <div class="base-center first" id="runner-first"></div>
+              <div class="base-center second" id="runner-second"></div>
+              <div class="base-center third" id="runner-third"></div>
+              <div class="home-plate"></div>
+            </div>
+          </div>
+        </div>
       </div>
 
       <!-- ==================== 右サイドバー：Home Lineup ==================== -->
@@ -46,32 +82,6 @@
                 </div>
             </div>
 
-            <div class="count-box">
-                <div class="count-row">
-                    <span class="count-label b">B</span>
-                    <div class="count-dots" id="ball-dots">
-                        <span class="dot"></span><span class="dot"></span><span class="dot"></span>
-                    </div>
-                </div>
-                <div class="count-row">
-                    <span class="count-label s">S</span>
-                    <div class="count-dots" id="strike-dots">
-                        <span class="dot"></span><span class="dot"></span>
-                    </div>
-                </div>
-                <div class="count-row">
-                    <span class="count-label o">O</span>
-                    <div class="count-dots" id="out-dots">
-                        <span class="dot"></span><span class="dot"></span>
-                    </div>
-                </div>
-            </div>
-
-            <div class="runner-diamond-mini">
-                <div class="base first" id="runner-first"></div>
-                <div class="base second" id="runner-second"></div>
-                <div class="base third" id="runner-third"></div>
-            </div>
         </div>
 
         <!-- Center: Line Score Table -->
