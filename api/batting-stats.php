@@ -23,7 +23,7 @@ try {
             // 打撃成績一覧取得
             $player_id = isset($_GET['player_id']) ? $_GET['player_id'] : null;
 
-            $sql = "SELECT bs.*, p.name as player_name, t.short_name as team_name
+            $sql = "SELECT bs.*, p.name as player_name, p.team_id, t.short_name as team_name
                     FROM batting_stats bs 
                     JOIN players p ON bs.player_id = p.player_id
                     JOIN teams t ON p.team_id = t.team_id";
@@ -112,17 +112,27 @@ try {
 
         case 'DELETE':
             // 削除
-            $id = isset($segments[0]) ? $segments[0] : null;
-            if (!$id) {
-                throw new Exception('IDが指定されていません');
+            $id = isset($segments[0]) && $segments[0] !== '' ? $segments[0] : null;
+            $team_id = isset($_GET['team_id']) ? $_GET['team_id'] : null;
+
+            if ($id) {
+                // ID指定削除
+                $sql = "DELETE FROM batting_stats WHERE stat_id = :id";
+                $stmt = $db->prepare($sql);
+                $stmt->bindParam(':id', $id, PDO::PARAM_INT);
+                $stmt->execute();
+                echo json_encode(['success' => true, 'message' => 'Deleted record ' . $id]);
+            } elseif ($team_id) {
+                // チーム一括削除
+                // DELETE FROM batting_stats WHERE player_id IN (SELECT player_id FROM players WHERE team_id = ?)
+                $sql = "DELETE FROM batting_stats WHERE player_id IN (SELECT player_id FROM players WHERE team_id = :team_id)";
+                $stmt = $db->prepare($sql);
+                $stmt->bindParam(':team_id', $team_id, PDO::PARAM_INT);
+                $stmt->execute();
+                echo json_encode(['success' => true, 'message' => 'Deleted stats for team ' . $team_id]);
+            } else {
+                throw new Exception('IDまたはチームIDが指定されていません');
             }
-
-            $sql = "DELETE FROM batting_stats WHERE stat_id = :id";
-            $stmt = $db->prepare($sql);
-            $stmt->bindParam(':id', $id, PDO::PARAM_INT);
-            $stmt->execute();
-
-            echo json_encode(['success' => true]);
             break;
 
         default:

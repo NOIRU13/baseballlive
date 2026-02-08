@@ -65,6 +65,7 @@
   overflow-y: auto;
   /* スクロールバー非表示 */
   scrollbar-width: none;
+  perspective: 1000px; /* 3D回転用 */
 }
 .lineup-list::-webkit-scrollbar {
   display: none;

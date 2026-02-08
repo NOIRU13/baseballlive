@@ -200,7 +200,7 @@
             console.error('簡易操作パネルがブロックされました');
           }
           
-          // 2. 試合管理パネルを開く（600x600、右側に配置）
+            // 2. 試合管理パネルを開く（600x600、右側に配置）
           setTimeout(function() {
             const controlWindow = window.open(
               'admin-control.html',
@@ -209,12 +209,26 @@
             );
             
             if (controlWindow) {
-              controlWindow.focus();
               console.log('試合管理パネルを開きました');
             } else {
               console.error('試合管理パネルがブロックされました');
             }
           }, 500); // 500ms遅延
+
+          // 3. 打順管理パネルを開く（900x600、右下に配置）
+          setTimeout(function() {
+            const lineupWindow = window.open(
+              'admin-lineup.html',
+              'lineupPanel',
+              'width=900,height=600,left=150,top=400,resizable=yes,scrollbars=yes'
+            );
+
+            if (lineupWindow) {
+                console.log('打順管理パネルを開きました');
+            } else {
+                console.error('打順管理パネルがブロックされました');
+            }
+          }, 1000); // 1000ms遅延
           
         } catch (error) {
           console.error('ポップアップを開く際にエラーが発生しました:', error);

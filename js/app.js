@@ -49,6 +49,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     Sync.setupBroadcastChannel(
         State.isAdminMode,
         (newState) => { // onStateUpdate
+            // Check for lineup change before updating state (or after, using local timestamp)
+            if (newState.lastLineupChange && newState.lastLineupChange.timestamp > lastLineupChangeTimestamp) {
+                lastLineupChangeTimestamp = newState.lastLineupChange.timestamp;
+                Render.showLineupAnimation(newState.lastLineupChange.changes);
+            }
+
             State.setState(newState);
             Render.updateDisplay(State.state, State.isAdminMode, State.isDisplayMode);
         },
@@ -84,11 +90,15 @@ function checkPageMode() {
  * OBSなど別ブラウザからのアクセスでもリアルタイム反映される
  */
 let lastResultTimestamp = 0; // 結果アニメーション重複防止用
+let lastLineupChangeTimestamp = 0; // 打順変更アニメーション重複防止用
 
 function setupStorageSync() {
     // 初期値を設定（既にstateにlastResultがあれば記録しておく）
     if (State.state.lastResult && State.state.lastResult.timestamp) {
         lastResultTimestamp = State.state.lastResult.timestamp;
+    }
+    if (State.state.lastLineupChange && State.state.lastLineupChange.timestamp) {
+        lastLineupChangeTimestamp = State.state.lastLineupChange.timestamp;
     }
 
     setInterval(async () => {
@@ -99,6 +109,12 @@ function setupStorageSync() {
         if (State.state.lastResult && State.state.lastResult.timestamp > lastResultTimestamp) {
             lastResultTimestamp = State.state.lastResult.timestamp;
             Render.showResultAnimation(State.state.lastResult.type);
+        }
+
+        // 打順変更アニメーション
+        if (State.state.lastLineupChange && State.state.lastLineupChange.timestamp > lastLineupChangeTimestamp) {
+            lastLineupChangeTimestamp = State.state.lastLineupChange.timestamp;
+            Render.showLineupAnimation(State.state.lastLineupChange.changes);
         }
     }, 500);
 }
@@ -112,30 +128,124 @@ function setupEventListeners() {
 
     // 打順保存ボタン (admin-lineup.html)
     addListener('btn-save-lineup', 'click', () => {
-        // 全selectから最新値を収集してstateに反映
+        const changes = [];
+        const newState = JSON.parse(JSON.stringify(State.state));
+        let hasPitcherChange = false;
+
+        // チーム名（選択）の変更確認・反映
+        const awaySelect = document.getElementById('away-team-select');
+        const homeSelect = document.getElementById('home-team-select');
+        
+        // Away Team
+        if (awaySelect) {
+            const newAwayId = parseInt(awaySelect.value);
+            const newAwayTeam = allTeams.find(t => t.id === newAwayId);
+            if (newAwayTeam && newAwayTeam.name !== State.state.teams.away) {
+                // Team Changed
+                newState.teams.away = newAwayTeam.name;
+                if (!newState.teamShortNames) newState.teamShortNames = { home: '', away: '' };
+                newState.teamShortNames.away = newAwayTeam.short_name || newAwayTeam.name;
+            }
+        }
+
+        // Home Team
+        if (homeSelect) {
+            const newHomeId = parseInt(homeSelect.value);
+            const newHomeTeam = allTeams.find(t => t.id === newHomeId);
+            if (newHomeTeam && newHomeTeam.name !== State.state.teams.home) {
+                // Team Changed
+                newState.teams.home = newHomeTeam.name;
+                if (!newState.teamShortNames) newState.teamShortNames = { home: '', away: '' };
+                newState.teamShortNames.home = newHomeTeam.short_name || newHomeTeam.name;
+            }
+        }
+
         ['away', 'home'].forEach(team => {
+            // Batters & Positions
             for (let i = 0; i < 9; i++) {
                 const nameEl = document.querySelector(`.lineup-input-name[data-team="${team}"][data-order="${i}"]`);
-                if (nameEl) State.state.lineup[team][i] = nameEl.value;
                 const posEl = document.querySelector(`.lineup-input-pos[data-team="${team}"][data-order="${i}"]`);
+                
+                const currentName = State.state.lineup[team][i];
+                const currentPos = State.state.positions ? State.state.positions[team][i] : '';
+
+                let nameChanged = false;
+                let posChanged = false;
+
+                if (nameEl && nameEl.value !== currentName) {
+                    nameChanged = true;
+                    newState.lineup[team][i] = nameEl.value;
+                }
+                
                 if (posEl) {
-                    if (!State.state.positions) State.state.positions = JSON.parse(JSON.stringify(Constants.DEFAULT_STATE.positions));
-                    State.state.positions[team][i] = posEl.value;
+                    if (!newState.positions) newState.positions = JSON.parse(JSON.stringify(Constants.DEFAULT_STATE.positions));
+                    if (posEl.value !== currentPos) {
+                        posChanged = true;
+                        newState.positions[team][i] = posEl.value;
+                    }
+                }
+
+                if (nameChanged) {
+                    changes.push({
+                        type: 'batter',
+                        team: team,
+                        order: i,
+                        oldName: currentName,
+                        newName: nameEl.value,
+                        pos: posEl ? posEl.value : currentPos
+                    });
+                } else if (posChanged) {
+                    changes.push({
+                        type: 'position',
+                        team: team,
+                        order: i,
+                        name: currentName,
+                        oldPos: currentPos,
+                        newPos: posEl.value
+                    });
                 }
             }
+
+            // Pitcher
             const pitcherEl = document.querySelector(`.lineup-input-pitcher[data-team="${team}"]`);
             if (pitcherEl) {
-                if (!State.state.pitcher) State.state.pitcher = { home: '', away: '' };
-                const prevPitcher = State.state.pitcher[team];
-                State.state.pitcher[team] = pitcherEl.value;
-                // 投手が変わったら旧投手の成績をDB保存してからリセット
-                if (prevPitcher && prevPitcher !== pitcherEl.value) {
-                    savePitcherStatsToDB(team, prevPitcher);
-                    resetPitcherTodayStats(team);
+                if (!newState.pitcher) newState.pitcher = { home: '', away: '' };
+                const prevPitcher = State.state.pitcher ? State.state.pitcher[team] : '';
+                
+                if (pitcherEl.value !== prevPitcher) {
+                    changes.push({
+                        type: 'pitcher',
+                        team: team,
+                        oldName: prevPitcher,
+                        newName: pitcherEl.value
+                    });
+                    
+                    newState.pitcher[team] = pitcherEl.value;
+                    
+                    // 投手が変わったら旧投手の成績をDB保存
+                    if (prevPitcher && prevPitcher !== pitcherEl.value) {
+                        savePitcherStatsToDB(team, prevPitcher);
+                        hasPitcherChange = true;
+                        // Reset is done on newState below
+                        resetPitcherTodayStats(team, newState); 
+                    }
                 }
             }
         });
+
+        // Apply changes
+        State.setState(newState);
+
+        // Animation Event
+        if (changes.length > 0) {
+            State.state.lastLineupChange = {
+                timestamp: Date.now(),
+                changes: changes
+            };
+        }
+
         updateAndSave();
+
         // 保存完了フィードバック
         const status = document.getElementById('save-status');
         const btn = document.getElementById('btn-save-lineup');
@@ -445,40 +555,8 @@ function convertResultToDbType(type) {
 }
 
 function handleLineupInput(e) {
-    if (e.target.classList.contains('lineup-input-name')) {
-        const team = e.target.dataset.team;
-        const order = parseInt(e.target.dataset.order);
-        State.state.lineup[team][order] = e.target.value;
-        Render.updateLineupDisplay(State.state, State.isAdminMode);
-        Render.updateCurrentBatterDisplay(State.state, State.isAdminMode);
-        State.saveState();
-    }
-    else if (e.target.classList.contains('lineup-input-pos')) {
-        const team = e.target.dataset.team;
-        const order = parseInt(e.target.dataset.order);
-        
-        if (!State.state.positions) {
-            State.state.positions = JSON.parse(JSON.stringify(Constants.DEFAULT_STATE.positions));
-        }
-        
-        State.state.positions[team][order] = e.target.value;
-        Render.updateLineupDisplay(State.state, State.isAdminMode);
-        Render.updateBottomStats(State.state, State.isDisplayMode);
-        State.saveState();
-    }
-    else if (e.target.classList.contains('lineup-input-pitcher')) {
-        const team = e.target.dataset.team;
-        if (!State.state.pitcher) State.state.pitcher = { home: '', away: '' };
-        const prevPitcher = State.state.pitcher[team];
-        State.state.pitcher[team] = e.target.value;
-        // 投手が変わったら旧投手の成績をDB保存してからリセット
-        if (prevPitcher && prevPitcher !== e.target.value) {
-            savePitcherStatsToDB(team, prevPitcher);
-            resetPitcherTodayStats(team);
-        }
-        Render.updateBottomStats(State.state, State.isDisplayMode);
-        State.saveState();
-    }
+   // 保存ボタンが押されるまで保存しない
+   // 必要であれば入力欄のバリデーションなどをここで行う
 }
 
 function updateAndSave() {
@@ -531,16 +609,18 @@ async function savePitcherStatsToDB(team, pitcherName) {
 /**
  * 投手交代時に当日投手成績（IP, K, R, BB, 投球数, アウト数）をリセット
  */
-function resetPitcherTodayStats(team) {
-    if (!State.state.pitcherStats) {
-        State.state.pitcherStats = JSON.parse(JSON.stringify(Constants.DEFAULT_STATE.pitcherStats));
+function resetPitcherTodayStats(team, targetState = null) {
+    const s = targetState || State.state;
+
+    if (!s.pitcherStats) {
+        s.pitcherStats = JSON.parse(JSON.stringify(Constants.DEFAULT_STATE.pitcherStats));
     }
     
     // 相手チームの現在の総得点（＝自チーム投手の総失点）を取得
     const opposingTeam = team === 'home' ? 'away' : 'home';
-    const currentTotalRuns = getTotalScore(State.state, opposingTeam);
+    const currentTotalRuns = getTotalScore(s, opposingTeam);
 
-    State.state.pitcherStats[team] = { 
+    s.pitcherStats[team] = { 
         innings: 0, 
         strikeouts: 0, 
         walks: 0, 
@@ -638,29 +718,14 @@ function populateTeamSelects() {
     // チーム選択時のイベントリスナー
     awaySelect.addEventListener('change', (e) => {
         teamSelections.away = e.target.value;
-        // チーム名を更新
-        const selectedTeam = allTeams.find(t => t.id === parseInt(e.target.value));
-        if (selectedTeam) {
-            State.state.teams.away = selectedTeam.name;
-            if (!State.state.teamShortNames) State.state.teamShortNames = { home: '', away: '' };
-            State.state.teamShortNames.away = selectedTeam.short_name || selectedTeam.name;
-        }
-        // 選手プルダウンを再生成
+        // チーム名は保存ボタン押下時にStateへ反映
+        // ここではプルダウンの更新のみ
         Render.generateLineupInputs(State.state, allPlayers, teamSelections);
-        updateAndSave();
     });
 
     homeSelect.addEventListener('change', (e) => {
         teamSelections.home = e.target.value;
-        // チーム名を更新
-        const selectedTeam = allTeams.find(t => t.id === parseInt(e.target.value));
-        if (selectedTeam) {
-            State.state.teams.home = selectedTeam.name;
-            if (!State.state.teamShortNames) State.state.teamShortNames = { home: '', away: '' };
-            State.state.teamShortNames.home = selectedTeam.short_name || selectedTeam.name;
-        }
-        // 選手プルダウンを再生成
+        // チーム名は保存ボタン押下時にStateへ反映
         Render.generateLineupInputs(State.state, allPlayers, teamSelections);
-        updateAndSave();
     });
 }

@@ -185,6 +185,26 @@ export function recordAtBatResult(state, resultCode) {
     // 四球・死球
     if (resultCode === 'walk' || resultCode === 'hbp') {
         recordWalk(state);
+        
+        // 押し出し処理
+        if (state.runners.first) {
+            if (state.runners.second) {
+                if (state.runners.third) {
+                    // 満塁: 得点加算
+                    const inningIndex = state.inning.number - 1;
+                    if (typeof state.scores[team][inningIndex] !== 'number') {
+                        state.scores[team][inningIndex] = 0;
+                    }
+                    state.scores[team][inningIndex]++;
+                } else {
+                    state.runners.third = true;
+                }
+            } else {
+                state.runners.second = true;
+            }
+        } else {
+            state.runners.first = true;
+        }
     }
 
     // 三振
@@ -196,20 +216,11 @@ export function recordAtBatResult(state, resultCode) {
     else if (['groundout', 'flyout', 'lineout', 'dp'].includes(resultCode)) {
         recordOut(state);
         if (resultCode === 'dp') {
-             // 併殺はもう一つアウト（簡易実装：2アウト取れる状況かは判定していない）
-            isChange = addOut(state);
+             // 併殺はアウト2つ
+             addOut(state);
+             isChange = addOut(state);
         } else {
-             isChange = isChange || (state.count.out === 0); // addOut内で判定済み
-        }
-        // addOutはチェンジ時に true を返す
-        if (state.count.out !== 0) {
-             // addOutがチェンジじゃなかった場合でも、recordOutでアウトカウントが増えるので
-             // addOutを呼ぶ必要があるが、上の分岐でDP以外は呼んでいないのでここで呼ぶべきか？
-             // 元のコードでは recordOut してから addOut していなかった（アウトカウント操作は addOut、投手成績は recordOut）
-             // 修正: addOut 内で recordOut を呼ぶように変更したので、ここでは addOut を呼ぶだけでよい
-             // ただし、recordAtBatResult の先頭で recordStrikeout などを呼んでいる。
-             // DPの場合は2回 addOut を呼ぶのが正しい。
-             // groundout等は1回。
+             isChange = addOut(state);
         }
     }
     

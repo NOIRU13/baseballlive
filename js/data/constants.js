@@ -77,20 +77,20 @@ export const DEFAULT_STATE = {
 
 // 打席結果のラベルマッピング
 export const RESULT_LABELS = {
-    'single': '\u5358',
-    'double': '2',
-    'triple': '3',
-    'homerun': 'HR',
-    'walk': '\u56DB',
-    'hbp': '\u6B7B',
-    'error': 'E',
-    'strikeout': 'K',
-    'groundout': '\u30B4',
-    'flyout': '\u30D5',
-    'lineout': '\u30E9',
-    'sacrifice': '\u72A0',
-    'fc': 'FC',
-    'dp': '\u4F75'
+    'single': '単打',
+    'double': '二塁打',
+    'triple': '三塁打',
+    'homerun': '本塁打',
+    'walk': '四球',
+    'hbp': '死球',
+    'error': 'エラー',
+    'strikeout': '三振',
+    'groundout': 'ゴロ',
+    'flyout': 'フライ',
+    'lineout': 'ライナー',
+    'sacrifice': '犠打',
+    'fc': '野選',
+    'dp': '併殺'
 };
 
 // 守備位置のリスト

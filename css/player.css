@@ -205,10 +205,11 @@
   margin-bottom: 10px;
   white-space: nowrap;
   overflow: hidden;
-  text-overflow: ellipsis;
+  text-overflow: clip; /* ellipsisではなくclipにする */
   text-shadow: 2px 2px 0 #000;
   width: 100%;
   line-height: 1.2;
+  transform-origin: left center; /* 縮小の基準点 */
 }
 
 .player-stats-row {

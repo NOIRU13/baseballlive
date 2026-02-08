@@ -39,8 +39,10 @@ export function updateTeamDisplay(state) {
     const homeDisplay = shortNames.home || state.teams.home;
 
     // サイドバー（略称）
-    setText('sidebar-away-name', awayDisplay);
-    setText('sidebar-home-name', homeDisplay);
+    // アニメーション付きで更新
+    updateTextWithAnimation('sidebar-away-name', awayDisplay, 'animate-slide-down');
+    updateTextWithAnimation('sidebar-home-name', homeDisplay, 'animate-slide-down');
+    
     // スコアボード（略称）
     setText('score-away-code', awayDisplay);
     setText('score-home-code', homeDisplay);
@@ -236,6 +238,9 @@ export function updateBottomStats(state, isDisplayMode) {
 
     // シーズン成績更新 (API)
     updateSeasonStats(batterName, pitcherName, state);
+
+    // テキストスケーリング適用
+    requestAnimationFrame(adjustTextScale);
 }
 
 async function updateSeasonStats(batterName, pitcherName, state) {
@@ -775,27 +780,169 @@ function toggleClass(id, className, condition) {
     if (el) el.classList.toggle(className, condition);
 }
 
-/**
- * 選手名が長すぎる場合に縮小表示する
- */
 function adjustTextScale() {
-    const names = document.querySelectorAll('.player-name');
+    const names = document.querySelectorAll('.player-name, .player-name-large');
     
     names.forEach(el => {
         // 幅制約がない場合は何もしない
         if (el.clientWidth === 0) return;
         
-        // 一旦リセット
+        // スタイルリセット
         el.style.transform = 'none';
-        el.style.width = 'auto'; // 自然な幅に戻す
         
-        const scrollW = el.scrollWidth;
-        const clientW = el.clientWidth;
+        const containerWidth = el.clientWidth;
+        const text = el.textContent;
         
-        if (scrollW > clientW) {
-            const scale = clientW / scrollW;
-            el.style.transformOrigin = 'left center';
-            el.style.transform = `scaleX(${scale})`;
+        // テキストの幅を正確に測るために一時的なspanを作成
+        const span = document.createElement('span');
+        span.style.visibility = 'hidden';
+        span.style.position = 'absolute';
+        span.style.whiteSpace = 'nowrap';
+        // フォントスタイルをコピー
+        const style = window.getComputedStyle(el);
+        span.style.fontFamily = style.fontFamily;
+        span.style.fontSize = style.fontSize;
+        span.style.fontWeight = style.fontWeight;
+        span.style.letterSpacing = style.letterSpacing;
+        span.textContent = text;
+        
+        document.body.appendChild(span);
+        const textWidth = span.offsetWidth;
+        document.body.removeChild(span);
+        
+        if (textWidth > containerWidth) {
+            const scale = containerWidth / textWidth;
+            // ギリギリだと見切れることがあるので少し余裕を持たせる
+            const safeScale = scale * 0.95; 
+            
+            // 右寄せの場合は右端基準、それ以外は左端基準
+            const originX = style.textAlign === 'right' ? 'right' : 'left';
+            
+            el.style.transformOrigin = `${originX} center`;
+            el.style.transform = `scaleX(${safeScale})`;
         }
     });
+}
+
+/**
+ * 選手交代アニメーション表示
+ */
+export function showLineupAnimation(changes) {
+    let overlay = document.getElementById('lineup-change-overlay');
+    
+    // Create overlay if not exists
+    if (!overlay) {
+        overlay = document.createElement('div');
+        overlay.id = 'lineup-change-overlay';
+        overlay.className = 'lineup-change-overlay';
+        
+        const title = document.createElement('div');
+        title.className = 'lineup-change-title';
+        title.textContent = 'PLAYER CHANGE';
+        overlay.appendChild(title);
+        
+        const details = document.createElement('div');
+        details.id = 'lineup-change-details';
+        details.className = 'lineup-change-details';
+        overlay.appendChild(details);
+        
+        document.body.appendChild(overlay);
+    }
+    
+    const detailsEl = document.getElementById('lineup-change-details');
+    if (!detailsEl) return; // Should exist
+
+    // Format Message
+    let messageHtml = '';
+    
+    // Prioritize Pitcher Change
+    const pitcherChanges = changes.filter(c => c.type === 'pitcher');
+    const batterChanges = changes.filter(c => c.type === 'batter');
+    const posChanges = changes.filter(c => c.type === 'position');
+
+    if (pitcherChanges.length > 0) {
+        // Just show first pitcher change for simplicity or loop
+        pitcherChanges.forEach(c => {
+             messageHtml += `<div class="lineup-change-row">PITCHER CHANGE<br>${c.oldName || '---'} <span class="change-arrow">▶</span> ${c.newName}</div>`;
+        });
+    }
+    
+    // Substitution messages removed as per request
+    /*
+    if (batterChanges.length > 0) {
+        batterChanges.forEach(c => {
+             messageHtml += `<div class="lineup-change-row">SUBSTITUTION<br>${c.oldName || '---'} <span class="change-arrow">▶</span> ${c.newName}</div>`;
+        });
+    }
+    */
+    
+    if (posChanges.length > 0 && messageHtml === '') {
+         messageHtml += `<div class="lineup-change-row">DEFENSIVE CHANGE</div>`;
+    }
+
+    if (messageHtml === '') return; // No meaningful message
+
+    detailsEl.innerHTML = messageHtml;
+    
+    // Reset Animation
+    overlay.classList.remove('lineup-change-animate');
+    void overlay.offsetWidth; // Force Reflow
+    overlay.classList.add('lineup-change-animate');
+    
+    // Remove after animation (optional, but good for cleanup of class)
+    setTimeout(() => {
+        overlay.classList.remove('lineup-change-animate');
+    }, 5500);
+
+    // ==========================================
+    // Sidebar Rotation Animation
+    // ==========================================
+    changes.forEach(c => {
+        const team = c.team;
+        const container = document.getElementById(`lineup-${team}-display`);
+        if (!container) return;
+
+        let targetEl = null;
+
+        if (c.type === 'pitcher') {
+            // Pitcher is usually the last item or has class .pitcher-item
+            targetEl = container.querySelector('.pitcher-item');
+        } else {
+            // Batter/Position change (0-indexed order)
+            // .lineup-item that is NOT .pitcher-item
+            // The order in the DOM corresponds to the batting order
+            const items = container.querySelectorAll('.lineup-item:not(.pitcher-item)');
+            if (items[c.order]) {
+                targetEl = items[c.order];
+            }
+        }
+
+        if (targetEl) {
+            // Reset animation
+            targetEl.classList.remove('animate-flip');
+            void targetEl.offsetWidth; // Force Reflow
+            targetEl.classList.add('animate-flip');
+
+            // Remove class after animation
+            setTimeout(() => {
+                targetEl.classList.remove('animate-flip');
+            }, 1000);
+        }
+    });
+}
+// Helper to update text with animation only if changed
+function updateTextWithAnimation(id, newText, animationClass) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    
+    if (el.textContent !== newText) {
+        el.textContent = newText;
+        el.classList.remove(animationClass);
+        void el.offsetWidth; // Force Reflow
+        el.classList.add(animationClass);
+        // Remove after (optional, but cleaner)
+        setTimeout(() => {
+            el.classList.remove(animationClass);
+        }, 1000);
+    }
 }

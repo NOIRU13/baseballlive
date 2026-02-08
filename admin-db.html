@@ -305,23 +305,142 @@
             </div>
         </div>
 
-        <div class="section">
-             <h2>成績データ管理</h2>
-             <div class="tabs" style="margin-bottom: 10px;">
-                <button class="tab-btn active" id="btn-stats-batting" onclick="loadStats('batting')">打撃成績</button>
-                <button class="tab-btn" id="btn-stats-pitching" onclick="loadStats('pitching')">投手成績</button>
+             <div class="section">
+                 <h2>チーム別成績リセット</h2>
+                 <div class="form-group flex-row" style="align-items: center;">
+                    <label style="margin-right: 10px;">対象チーム:</label>
+                    <select id="stats-team-filter" style="width: auto; min-width: 200px; margin-right: 10px;">
+                        <option value="">（選択してください）</option>
+                        <!-- JSで挿入 -->
+                    </select>
+                    <button id="btn-reset-team-stats" class="danger-btn" onclick="resetTeamStats()" disabled style="padding: 10px 20px; font-size: 14px;">チーム成績一括削除</button>
+                 </div>
+                 <p style="font-size: 12px; color: #aaa;">※選択したチームの全ての打撃・投手記録（現在選択中のタブに関わらず、両方削除するか確認します）が削除されます。</p>
+             </div>
+
+             <div class="section">
+                 <h2>成績データマニュアル登録・編集</h2>
+                 <form id="stats-form">
+                    <input type="hidden" id="stats-id">
+                    <input type="hidden" id="stats-type" value="batting"> <!-- batting or pitching -->
+                    
+                    <div class="form-group">
+                        <label for="stats-form-team-select">チーム</label>
+                        <select id="stats-form-team-select" onchange="loadPlayersForStats(this.value)" required>
+                            <option value="">（チームを選択してください）</option>
+                            <!-- JSで挿入 -->
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="stats-player-select">選手</label>
+                        <select id="stats-player-select" required>
+                             <option value="">（チームを選択してください）</option>
+                             <!-- JSで該当チームの選手ロード -->
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="stats-season">年度</label>
+                        <input type="number" id="stats-season" value="2026" required>
+                    </div>
+
+                    <!-- 打撃用フィールド -->
+                    <div id="batting-fields">
+                        <div class="flex-row">
+                            <div class="form-group flex-1">
+                                <label for="stats-batting-average">打率</label>
+                                <input type="text" id="stats-batting-average" placeholder=".300">
+                            </div>
+                            <div class="form-group flex-1">
+                                <label for="stats-games-b">試合数</label>
+                                <input type="number" id="stats-games-b">
+                            </div>
+                            <div class="form-group flex-1">
+                                <label for="stats-at-bats">打数</label>
+                                <input type="number" id="stats-at-bats">
+                            </div>
+                        </div>
+                        <div class="flex-row">
+                            <div class="form-group flex-1">
+                                <label for="stats-hits">安打</label>
+                                <input type="number" id="stats-hits">
+                            </div>
+                            <div class="form-group flex-1">
+                                <label for="stats-home-runs">本塁打</label>
+                                <input type="number" id="stats-home-runs">
+                            </div>
+                            <div class="form-group flex-1">
+                                <label for="stats-rbis">打点</label>
+                                <input type="number" id="stats-rbis">
+                            </div>
+                            <div class="form-group flex-1">
+                                <label for="stats-ops">OPS</label>
+                                <input type="text" id="stats-ops" placeholder=".850">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 投手用フィールド -->
+                    <div id="pitching-fields" style="display: none;">
+                        <div class="flex-row">
+                            <div class="form-group flex-1">
+                                <label for="stats-era">防御率</label>
+                                <input type="text" id="stats-era" placeholder="3.50">
+                            </div>
+                            <div class="form-group flex-1">
+                                <label for="stats-games-p">登板数</label>
+                                <input type="number" id="stats-games-p">
+                            </div>
+                        </div>
+                        <div class="flex-row">
+                            <div class="form-group flex-1">
+                                <label for="stats-wins">勝利</label>
+                                <input type="number" id="stats-wins">
+                            </div>
+                            <div class="form-group flex-1">
+                                <label for="stats-losses">敗北</label>
+                                <input type="number" id="stats-losses">
+                            </div>
+                            <div class="form-group flex-1">
+                                <label for="stats-saves">セーブ</label>
+                                <input type="number" id="stats-saves">
+                            </div>
+                        </div>
+                        <div class="flex-row">
+                            <div class="form-group flex-1">
+                                <label for="stats-innings">投球回</label>
+                                <input type="text" id="stats-innings">
+                            </div>
+                            <div class="form-group flex-1">
+                                <label for="stats-strikeouts">奪三振</label>
+                                <input type="number" id="stats-strikeouts">
+                            </div>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="primary-btn">保存</button>
+                    <button type="button" onclick="resetStatsForm()" style="background:transparent; border:1px solid #aaa; color:#aaa; padding:8px; border-radius:4px; margin-left:10px; cursor:pointer;">キャンセル</button>
+                 </form>
             </div>
-             <div style="overflow-x: auto;">
-                <table id="stats-table">
-                    <thead>
-                        <!-- JSで生成 -->
-                    </thead>
-                    <tbody>
-                        <!-- JSで生成 -->
-                    </tbody>
-                </table>
+
+             <div class="section">
+                 <h2>成績データ管理</h2>
+                 <div class="tabs" style="margin-bottom: 10px;">
+                    <button class="tab-btn active" id="btn-stats-batting" onclick="switchStatsTab('batting')">打撃成績</button>
+                    <button class="tab-btn" id="btn-stats-pitching" onclick="switchStatsTab('pitching')">投手成績</button>
+                </div>
+                 <div style="overflow-x: auto;">
+                    <table id="stats-table">
+                        <thead>
+                            <!-- JSで生成 -->
+                        </thead>
+                        <tbody>
+                            <!-- JSで生成 -->
+                        </tbody>
+                    </table>
+                </div>
             </div>
-        </div>
       </div>
     </div>
 
@@ -341,7 +460,7 @@
             if(tabName === 'players') btns[1].classList.add('active');
             if(tabName === 'stats') {
                 btns[2].classList.add('active');
-                loadStats('batting'); // デフォルトで打撃成績表示
+                switchStatsTab('batting'); // デフォルトで打撃成績表示
             }
         }
     </script>

@@ -236,6 +236,7 @@ window.deletePlayer = async (id) => {
 // ==================== 成績管理 ====================
 
 const STATS_API_BASE = '/api';
+let currentStatsData = []; // 編集用にデータを保持
 
 // CSVアップロード
 async function uploadCsv() {
@@ -268,7 +269,7 @@ async function uploadCsv() {
             statusDiv.style.color = '#2ecc71';
             // 該当する成績を表示更新
             if (typeSelect.value === 'batting' || typeSelect.value === 'pitching') {
-                loadStats(typeSelect.value);
+                switchStatsTab(typeSelect.value);
             }
         } else {
             statusDiv.textContent = `エラー: ${data.error}`;
@@ -284,24 +285,64 @@ async function uploadCsv() {
 // CSVエクスポート
 function exportCsv(type) {
     if (!type) {
-        // ボタンから呼び出された場合などに対応
-        // 現在のタブや選択状態から判断するロジックを入れてもいいが、
-        // 今回はとりあえず引数必須とする
         return;
     }
     window.location.href = `${STATS_API_BASE}/export-csv?type=${type}`;
 }
 
-// 成績読み込み
-async function loadStats(type) {
-    // タブのボタンのアクティブ状態更新
+// 成績タブ切り替え
+function switchStatsTab(type) {
+    // タブボタンのアクティブ化
     document.getElementById('btn-stats-batting').classList.remove('active');
     document.getElementById('btn-stats-pitching').classList.remove('active');
     document.getElementById(`btn-stats-${type}`).classList.add('active');
 
+    // フォームの表示切り替え
+    document.getElementById('stats-type').value = type;
+    if (type === 'batting') {
+        document.getElementById('batting-fields').style.display = 'block';
+        document.getElementById('pitching-fields').style.display = 'none';
+    } else {
+        document.getElementById('batting-fields').style.display = 'none';
+        document.getElementById('pitching-fields').style.display = 'block';
+    }
+
+    loadStats(type);
+}
+
+// 成績用選手リスト読み込み
+async function loadPlayersForStats(teamId) {
+    const select = document.getElementById('stats-player-select');
+    select.innerHTML = '<option value="">読み込み中...</option>';
+
+    if (!teamId) {
+        select.innerHTML = '<option value="">（チームを選択してください）</option>';
+        return;
+    }
+
+    try {
+        const res = await fetch(`${API_BASE}/players?team_id=${teamId}`);
+        const players = await res.json();
+        
+        select.innerHTML = '<option value="">選択してください</option>';
+        players.forEach(p => {
+             const option = document.createElement('option');
+             option.value = p.id;
+             option.textContent = `${p.name} (#${p.number || ''})`;
+             select.appendChild(option);
+        });
+    } catch(e) {
+        console.error('選手リスト読み込みエラー(Stats)', e);
+        select.innerHTML = '<option value="">エラー</option>';
+    }
+}
+
+// 成績読み込み
+async function loadStats(type) {
     try {
         const res = await fetch(`${STATS_API_BASE}/${type}-stats`);
         const stats = await res.json();
+        currentStatsData = stats; // グローバル保持
         
         renderStatsTable(stats, type);
     } catch (err) {
@@ -355,6 +396,9 @@ function renderStatsTable(stats, type) {
         );
     }
     
+    // 操作カラム
+    headers.push({ key: 'action', label: '操作' });
+
     headers.forEach(h => {
         const th = document.createElement('th');
         th.textContent = h.label;
@@ -363,20 +407,230 @@ function renderStatsTable(stats, type) {
     thead.appendChild(trHead);
     
     // ボディ生成
-    stats.forEach(row => {
+    stats.forEach((row, index) => {
         const tr = document.createElement('tr');
         headers.forEach(h => {
             const td = document.createElement('td');
-            let val = row[h.key];
-            if (val === null) val = '-';
-            td.textContent = val;
+            if (h.key === 'action') {
+                td.innerHTML = `
+                    <button class="edit-btn" onclick="editStats(${index})">編集</button>
+                    <button class="danger-btn" onclick="deleteStats(${row.stat_id}, '${type}')">削除</button>
+                `;
+            } else {
+                let val = row[h.key];
+                if (val === null) val = '-';
+                td.textContent = val;
+            }
             tr.appendChild(td);
         });
         tbody.appendChild(tr);
     });
 }
 
+// 成績編集モード (index: currentStatsDataのインデックス)
+window.editStats = async (index) => {
+    const data = currentStatsData[index];
+    if (!data) return;
+
+    // フォームに値をセット
+    document.getElementById('stats-id').value = data.stat_id;
+    document.getElementById('stats-season').value = data.season;
+
+    // チームをセットして選手リスト読み込み
+    const teamSelect = document.getElementById('stats-form-team-select');
+    if (data.team_id) {
+        teamSelect.value = data.team_id;
+        await loadPlayersForStats(data.team_id);
+        document.getElementById('stats-player-select').value = data.player_id;
+    } else {
+        // team_idがない場合のフォールバック（全読み込みなどはしないのでエラーになるかも）
+        console.warn('team_id not found in stats data');
+    }
+
+    const type = document.getElementById('stats-type').value;
+
+    if (type === 'batting') {
+        document.getElementById('stats-batting-average').value = data.batting_average;
+        document.getElementById('stats-games-b').value = data.games;
+        document.getElementById('stats-at-bats').value = data.at_bats;
+        document.getElementById('stats-hits').value = data.hits;
+        document.getElementById('stats-home-runs').value = data.home_runs;
+        document.getElementById('stats-rbis').value = data.rbis;
+        document.getElementById('stats-ops').value = data.ops;
+    } else {
+        document.getElementById('stats-era').value = data.era;
+        document.getElementById('stats-games-p').value = data.games;
+        document.getElementById('stats-wins').value = data.wins;
+        document.getElementById('stats-losses').value = data.losses;
+        document.getElementById('stats-saves').value = data.saves;
+        document.getElementById('stats-innings').value = data.innings_pitched;
+        document.getElementById('stats-strikeouts').value = data.strikeouts;
+    }
+
+    document.querySelector('#stats-form button[type="submit"]').textContent = '更新';
+    
+    // フォームへスクロール
+    document.getElementById('stats-form').scrollIntoView({ behavior: 'smooth' });
+};
+
+// 成績フォームリセット
+window.resetStatsForm = () => {
+    document.getElementById('stats-id').value = '';
+    
+    document.getElementById('stats-form-team-select').value = '';
+    document.getElementById('stats-player-select').innerHTML = '<option value="">（チームを選択してください）</option>';
+
+    // 各フィールドクリア
+    const inputs = document.querySelectorAll('#stats-form input:not([type="hidden"]):not(#stats-season)');
+    inputs.forEach(input => input.value = '');
+    
+    document.querySelector('#stats-form button[type="submit"]').textContent = '保存';
+};
+
+// 成績送信処理
+async function handleStatsSubmit(e) {
+    e.preventDefault();
+    const id = document.getElementById('stats-id').value;
+    const type = document.getElementById('stats-type').value; // batting or pitching
+
+    const data = {
+        player_id: document.getElementById('stats-player-select').value,
+        season: document.getElementById('stats-season').value
+    };
+
+    if (type === 'batting') {
+        data.batting_average = document.getElementById('stats-batting-average').value;
+        data.games = document.getElementById('stats-games-b').value;
+        data.at_bats = document.getElementById('stats-at-bats').value;
+        data.hits = document.getElementById('stats-hits').value;
+        data.home_runs = document.getElementById('stats-home-runs').value;
+        data.rbis = document.getElementById('stats-rbis').value;
+        data.ops = document.getElementById('stats-ops').value;
+    } else {
+        data.era = document.getElementById('stats-era').value;
+        data.games = document.getElementById('stats-games-p').value;
+        data.wins = document.getElementById('stats-wins').value;
+        data.losses = document.getElementById('stats-losses').value;
+        data.saves = document.getElementById('stats-saves').value;
+        data.innings_pitched = document.getElementById('stats-innings').value;
+        data.strikeouts = document.getElementById('stats-strikeouts').value;
+    }
+
+    const method = id ? 'PUT' : 'POST';
+    const url = id ? `${STATS_API_BASE}/${type}-stats/${id}` : `${STATS_API_BASE}/${type}-stats`;
+
+    try {
+        const res = await fetch(url, {
+            method,
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+
+        if (res.ok) {
+            resetStatsForm();
+            loadStats(type);
+        } else {
+            const errJson = await res.json();
+            alert('保存に失敗しました: ' + (errJson.error || '不明なエラー'));
+        }
+    } catch (err) {
+        console.error(err);
+        alert('エラーが発生しました');
+    }
+}
+
+// 成績削除処理
+window.deleteStats = async (id, type) => {
+    if (!confirm('本当に削除しますか？')) return;
+
+    try {
+        const res = await fetch(`${STATS_API_BASE}/${type}-stats/${id}`, { method: 'DELETE' });
+        if (res.ok) {
+            loadStats(type);
+        } else {
+            alert('削除できませんでした');
+        }
+    } catch (err) {
+        alert('エラーが発生しました');
+    }
+}
+
+
+// 成績用チームリスト読み込み
+async function loadStatsTeams() {
+    try {
+        const res = await fetch(`${API_BASE}/teams`);
+        const teams = await res.json();
+        
+        // チーム別リセット用のセレクトボックス
+        const selectFilter = document.getElementById('stats-team-filter');
+        selectFilter.innerHTML = '<option value="">（選択してください）</option>';
+
+        // マニュアル登録・編集用のセレクトボックス
+        const selectForm = document.getElementById('stats-form-team-select');
+        selectForm.innerHTML = '<option value="">（チームを選択してください）</option>';
+        
+        teams.forEach(t => {
+            const option = document.createElement('option');
+            option.value = t.id;
+            option.textContent = t.name;
+            
+            selectFilter.appendChild(option.cloneNode(true));
+            selectForm.appendChild(option);
+        });
+
+        // 変更イベント (リセットボタン)
+        selectFilter.addEventListener('change', (e) => {
+            const btn = document.getElementById('btn-reset-team-stats');
+            btn.disabled = !e.target.value;
+            // 将来的にフィルタリングを入れるならここで loadStats を呼ぶ
+        });
+    } catch(e) {
+        console.error('チームリスト読み込みエラー(Stats)', e);
+    }
+}
+
+// チーム成績一括削除
+// バッティング・投手成績の両方を削除するか、選択式にするか。
+// 要望は「チームの成績をオールリセット」なので、両方消すのが自然。
+window.resetTeamStats = async () => {
+    const teamId = document.getElementById('stats-team-filter').value;
+    if (!teamId) return;
+
+    if (!confirm('【警告】\n選択したチームの成績データ（打撃・投手すべて）を完全に削除します。\n本当によろしいですか？')) {
+        return;
+    }
+
+    try {
+        // 打撃成績削除
+        const resBat = await fetch(`${STATS_API_BASE}/batting-stats?team_id=${teamId}`, { method: 'DELETE' });
+        // 投手成績削除
+        const resPitch = await fetch(`${STATS_API_BASE}/pitching-stats?team_id=${teamId}`, { method: 'DELETE' });
+
+        if (resBat.ok && resPitch.ok) {
+            alert('成績データを削除しました。');
+            // 表示更新（現在表示中のタブの再読み込み）
+            const currentType = document.getElementById('stats-type').value;
+            loadStats(currentType);
+        } else {
+            alert('一部の削除に失敗しました。');
+        }
+    } catch (err) {
+        console.error(err);
+        alert('エラーが発生しました');
+    }
+};
+
 // グローバルスコープに公開
 window.uploadCsv = uploadCsv;
 window.exportCsv = exportCsv;
 window.loadStats = loadStats;
+window.switchStatsTab = switchStatsTab;
+window.resetTeamStats = resetTeamStats;
+
+// DOM読み込み完了時の追加処理
+document.addEventListener('DOMContentLoaded', () => {
+    loadPlayersForStats();
+    loadStatsTeams(); // 追加
+    document.getElementById('stats-form').addEventListener('submit', handleStatsSubmit);
+});
