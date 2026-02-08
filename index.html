@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>野球スコアボード - Baseball Live</title>
     <link rel="stylesheet" href="style.css" />
-    <!-- Google Fonts: スポーツ向けの視認性の高いフォント -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -14,120 +13,149 @@
     />
   </head>
   <body class="display-mode">
-    <!-- ==================== スコアボード表示部 ==================== -->
-    <div id="scoreboard" class="scoreboard">
-      <!-- 左側: チーム情報 & カウント -->
-      <div class="scoreboard-left">
-        <!-- イニング表示 -->
-        <div class="inning-display">
-          <span class="inning-half" id="inning-half">▲</span>
-          <span class="inning-number" id="inning-number">1</span>
-        </div>
-
-        <!-- チーム名 -->
-        <div class="teams">
-          <div class="team away" id="team-away-display">
-            <span class="team-name">アウェイ</span>
-          </div>
-          <div class="team home" id="team-home-display">
-            <span class="team-name">ホーム</span>
-          </div>
-        </div>
-
-        <!-- 得点合計 -->
-        <div class="totals">
-          <div class="total-row away">
-            <span class="total-score" id="away-total">0</span>
-          </div>
-          <div class="total-row home">
-            <span class="total-score" id="home-total">0</span>
-          </div>
+    <div id="broadcast-layout">
+      <!-- ==================== 左サイドバー：Away Lineup ==================== -->
+      <div class="sidebar left-sidebar">
+        <div class="sidebar-header" id="sidebar-away-name">AWAY</div>
+        <div class="lineup-list" id="lineup-away-display">
+          <!-- JSで生成 -->
         </div>
       </div>
 
-      <!-- 中央: カウント & ランナー -->
-      <div class="scoreboard-center">
-        <!-- カウント表示 -->
-        <div class="count-display">
-          <div class="count-row">
-            <span class="count-label">B</span>
-            <div class="count-dots" id="ball-dots">
-              <span class="dot"></span>
-              <span class="dot"></span>
-              <span class="dot"></span>
-            </div>
-          </div>
-          <div class="count-row">
-            <span class="count-label">S</span>
-            <div class="count-dots" id="strike-dots">
-              <span class="dot"></span>
-              <span class="dot"></span>
-            </div>
-          </div>
-          <div class="count-row">
-            <span class="count-label">O</span>
-            <div class="count-dots" id="out-dots">
-              <span class="dot"></span>
-              <span class="dot"></span>
-            </div>
-          </div>
-        </div>
+      <!-- ==================== 中央：映像エリア（透明） ==================== -->
+      <div class="center-space">
+        <!-- 16:9 映像エリア -->
+      </div>
 
-        <!-- ランナー表示（ダイヤモンド形式） -->
-        <div class="runner-display">
-          <div class="diamond">
-            <div class="base second" id="runner-second"></div>
-            <div class="base third" id="runner-third"></div>
-            <div class="base first" id="runner-first"></div>
-          </div>
+      <!-- ==================== 右サイドバー：Home Lineup ==================== -->
+      <div class="sidebar right-sidebar">
+        <div class="sidebar-header" id="sidebar-home-name">HOME</div>
+        <div class="lineup-list" id="lineup-home-display">
+          <!-- JSで生成 -->
         </div>
       </div>
 
-      <!-- 右側: R/H/E -->
-      <div class="scoreboard-right">
-        <div class="rhe-header">
-          <span>R</span>
-          <span>H</span>
-          <span>E</span>
+      <!-- ==================== 上部：スコアボード ==================== -->
+      <div class="top-scoreboard">
+        <!-- Left Group: Inning, Count, Runner -->
+        <div class="sb-left-group">
+            <div class="inning-section">
+                <div class="inning-box">
+                    <span class="inning-num" id="inning-number">1</span>
+                    <span class="inning-half" id="inning-half">表</span>
+                </div>
+            </div>
+
+            <div class="count-box">
+                <div class="count-row">
+                    <span class="count-label" style="color:#2ecc71">B</span>
+                    <div class="count-dots" id="ball-dots">
+                        <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+                    </div>
+                </div>
+                <div class="count-row">
+                    <span class="count-label" style="color:#e74c3c">S</span>
+                    <div class="count-dots" id="strike-dots">
+                        <span class="dot"></span><span class="dot"></span>
+                    </div>
+                </div>
+                <div class="count-row">
+                    <span class="count-label" style="color:#e67e22">O</span>
+                    <div class="count-dots" id="out-dots">
+                        <span class="dot"></span><span class="dot"></span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="runner-diamond-mini">
+                <div class="base first" id="runner-first"></div>
+                <div class="base second" id="runner-second"></div>
+                <div class="base third" id="runner-third"></div>
+            </div>
         </div>
-        <div class="rhe-row away">
-          <span id="away-r">0</span>
-          <span id="away-h">0</span>
-          <span id="away-e">0</span>
+
+        <!-- Center: Line Score Table -->
+        <div class="line-score-container">
+            <table class="line-score-table">
+                <thead>
+                    <tr>
+                        <th>Team</th>
+                        <th>1</th><th>2</th><th>3</th><th>4</th><th>5</th><th>6</th><th>7</th><th>8</th><th>9</th>
+                        <th>R</th><th>H</th><th>E</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr id="row-away">
+                        <td class="team-name-cell" id="team-name-away">Away</td>
+                        <td id="score-away-1">0</td><td id="score-away-2">0</td><td id="score-away-3">0</td>
+                        <td id="score-away-4">0</td><td id="score-away-5">0</td><td id="score-away-6">0</td>
+                        <td id="score-away-7">0</td><td id="score-away-8">0</td><td id="score-away-9">0</td>
+                        <td id="score-away-total" class="total-cell">0</td>
+                        <td id="stats-away-h">0</td>
+                        <td id="stats-away-e">0</td>
+                    </tr>
+                    <tr id="row-home">
+                        <td class="team-name-cell" id="team-name-home">Home</td>
+                        <td id="score-home-1">0</td><td id="score-home-2">0</td><td id="score-home-3">0</td>
+                        <td id="score-home-4">0</td><td id="score-home-5">0</td><td id="score-home-6">0</td>
+                        <td id="score-home-7">0</td><td id="score-home-8">0</td><td id="score-home-9">0</td>
+                        <td id="score-home-total" class="total-cell">0</td>
+                        <td id="stats-home-h">0</td>
+                        <td id="stats-home-e">0</td>
+                    </tr>
+                </tbody>
+            </table>
         </div>
-        <div class="rhe-row home">
-          <span id="home-r">0</span>
-          <span id="home-h">0</span>
-          <span id="home-e">0</span>
-        </div>
+
+        <!-- Right: Info -->
+        <div class="info-section" id="info-text">LIVE BROADCAST</div>
+      </div>
+
+      <!-- ==================== 左下：打者詳細情報 ==================== -->
+      <div class="player-display-bottom left" id="player-display-left">
+          <div class="player-role-label">BATTER</div>
+          <div class="player-name-large" id="batter-name-large">---</div>
+          <div class="player-stats-row" id="batter-stats-today">
+              <!-- 当日の打席結果を表示（例：遊ゴロ 左安 三振） -->
+          </div>
+      </div>
+
+      <!-- ==================== 右下:投手詳細情報 ==================== -->
+      <div class="player-display-bottom right" id="player-display-right">
+          <div class="player-role-label">PITCHER</div>
+          <div class="player-name-large" id="pitcher-name-large">---</div>
+          <div class="player-stats-row" id="pitcher-stats-today">
+              <!-- 投手の当日成績(イニング、三振、失点) -->
+              <span class="stat-item"><span class="stat-label">IP:</span> <span id="pitcher-innings">0.0</span></span>
+              <span class="stat-item"><span class="stat-label">K:</span> <span id="pitcher-strikeouts">0</span></span>
+              <span class="stat-item"><span class="stat-label">R:</span> <span id="pitcher-runs">0</span></span>
+          </div>
+      </div>
+
+      <!-- ==================== 中央：結果アニメーションオーバーレイ ==================== -->
+      <div id="result-overlay" class="result-overlay">
+          <div class="result-text" id="result-text">HOMERUN</div>
       </div>
     </div>
 
-    <!-- ==================== 打順ボード ==================== -->
-    <div id="lineup-boards" class="lineup-boards">
-      <!-- アウェイチーム打順 -->
-      <div class="lineup-board away">
-        <div class="lineup-header">
-          <span class="lineup-team-name" id="lineup-away-name">アウェイ</span>
-          <span class="lineup-label">打順</span>
-        </div>
-        <div class="lineup-list" id="away-lineup">
-          <!-- 動的に生成 -->
-        </div>
-      </div>
-
-      <!-- ホームチーム打順 -->
-      <div class="lineup-board home">
-        <div class="lineup-header">
-          <span class="lineup-team-name" id="lineup-home-name">ホーム</span>
-          <span class="lineup-label">打順</span>
-        </div>
-        <div class="lineup-list" id="home-lineup">
-          <!-- 動的に生成 -->
-        </div>
-      </div>
-    </div>
-
+    <!-- 自動スケーリング用スクリプト -->
+    <script>
+      function fitToWindow() {
+        const el = document.getElementById('broadcast-layout');
+        const targetWidth = 1920;
+        const targetHeight = 1080;
+        // 常に1920x1080比率でウィンドウにフィットさせる（黒帯が出る可能性あり）
+        // または、width 100% height 100% でフィットさせる
+        
+        const windowWidth = window.innerWidth;
+        const windowHeight = window.innerHeight;
+        const scale = Math.min(windowWidth / targetWidth, windowHeight / targetHeight);
+        
+        el.style.transform = `translate(-50%, -50%) scale(${scale})`;
+      }
+      window.addEventListener('resize', fitToWindow);
+      window.addEventListener('load', fitToWindow);
+    </script>
     <script src="script.js"></script>
   </body>
 </html>

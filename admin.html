@@ -86,10 +86,14 @@
       <!-- ランナー操作 -->
       <section class="control-section">
         <h2>ランナー</h2>
-        <div class="runner-controls">
-          <button id="btn-runner-1" class="btn btn-runner">1塁</button>
-          <button id="btn-runner-2" class="btn btn-runner">2塁</button>
-          <button id="btn-runner-3" class="btn btn-runner">3塁</button>
+        <div class="runner-controls-admin">
+          <div class="runner-display-admin">
+            <div class="diamond-admin">
+              <button id="btn-runner-2" class="base-btn second" title="2塁"></button>
+              <button id="btn-runner-3" class="base-btn third" title="3塁"></button>
+              <button id="btn-runner-1" class="base-btn first" title="1塁"></button>
+            </div>
+          </div>
         </div>
         <button id="btn-runner-clear" class="btn btn-full btn-warning">
           ランナークリア
@@ -185,15 +189,67 @@
       <!-- 打順・選手名入力 -->
       <section class="control-section">
         <h2>打順・選手名入力</h2>
-        <div class="lineup-input-tabs">
-          <button id="btn-tab-away-lineup" class="btn btn-tab active">先攻（アウェイ）</button>
-          <button id="btn-tab-home-lineup" class="btn btn-tab">後攻（ホーム）</button>
+        <!-- 先攻・後攻 並列表示用のコンテナ -->
+        <div class="lineup-container">
+          <!-- 先攻チーム -->
+          <div class="lineup-column">
+            <h3 class="lineup-team-title">先攻（アウェイ）</h3>
+            <div id="lineup-input-away" class="lineup-input-panel">
+              <!-- 動的に生成 -->
+            </div>
+          </div>
+          
+          <!-- 後攻チーム -->
+          <div class="lineup-column">
+            <h3 class="lineup-team-title">後攻（ホーム）</h3>
+            <div id="lineup-input-home" class="lineup-input-panel">
+              <!-- 動的に生成 -->
+            </div>
+          </div>
         </div>
-        <div id="lineup-input-away" class="lineup-input-panel active">
-          <!-- 動的に生成 -->
-        </div>
-        <div id="lineup-input-home" class="lineup-input-panel">
-          <!-- 動的に生成 -->
+      </section>
+
+      <!-- 投手成績入力 -->
+      <section class="control-section">
+        <h2>投手成績</h2>
+        <div class="lineup-container">
+          <!-- 先攻チーム投手成績 -->
+          <div class="lineup-column">
+            <h3 class="lineup-team-title">先攻（アウェイ）投手</h3>
+            <div class="pitcher-stats-section">
+              <div class="pitcher-stats-row">
+                <span class="stat-name">投球回</span>
+                <input type="number" id="pitcher-innings-away" step="0.1" min="0" value="0" />
+              </div>
+              <div class="pitcher-stats-row">
+                <span class="stat-name">三振</span>
+                <input type="number" id="pitcher-k-away" min="0" value="0" />
+              </div>
+              <div class="pitcher-stats-row">
+                <span class="stat-name">失点</span>
+                <input type="number" id="pitcher-runs-away" min="0" value="0" />
+              </div>
+            </div>
+          </div>
+
+          <!-- 後攻チーム投手成績 -->
+          <div class="lineup-column">
+            <h3 class="lineup-team-title">後攻（ホーム）投手</h3>
+            <div class="pitcher-stats-section">
+              <div class="pitcher-stats-row">
+                <span class="stat-name">投球回</span>
+                <input type="number" id="pitcher-innings-home" step="0.1" min="0" value="0" />
+              </div>
+              <div class="pitcher-stats-row">
+                <span class="stat-name">三振</span>
+                <input type="number" id="pitcher-k-home" min="0" value="0" />
+              </div>
+              <div class="pitcher-stats-row">
+                <span class="stat-name">失点</span>
+                <input type="number" id="pitcher-runs-home" min="0" value="0" />
+              </div>
+            </div>
+          </div>
         </div>
       </section>
 

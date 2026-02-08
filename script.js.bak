@@ -1,0 +1,894 @@
+/**
+ * 野球スコアボード - メインスクリプト
+ * OBS Studio ブラウザソース用
+ */
+
+// ==================== データモデル ====================
+const DEFAULT_STATE = {
+    teams: {
+        home: 'ホーム',
+        away: 'アウェイ'
+    },
+    inning: {
+        number: 1,
+        half: 'top' // 'top' = 表, 'bottom' = 裏
+    },
+    // 各イニングの得点（最大12イニング分）
+    scores: {
+        home: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        away: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+    },
+    count: {
+        ball: 0,
+        strike: 0,
+        out: 0
+    },
+    runners: {
+        first: false,
+        second: false,
+        third: false
+    },
+    // R(得点合計), H(ヒット), E(エラー)
+    stats: {
+        home: { r: 0, h: 0, e: 0 },
+        away: { r: 0, h: 0, e: 0 }
+    },
+    // 打順データ（9人分の選手名）
+    lineup: {
+        home: ['', '', '', '', '', '', '', '', ''],
+        away: ['', '', '', '', '', '', '', '', '']
+    },
+    // 現在の打順位置（0-8）
+    currentBatter: {
+        home: 0,
+        away: 0
+    },
+    // 各選手の打席結果履歴
+    // 例: { home: [['single', 'groundout'], [], ...], away: [...] }
+    atBatResults: {
+        home: [[], [], [], [], [], [], [], [], []],
+        away: [[], [], [], [], [], [], [], [], []]
+    },
+    // 結果取り消し用の履歴
+    resultHistory: []
+};
+
+// 打席結果のラベルマッピング
+const RESULT_LABELS = {
+    'single': '単',
+    'double': '2',
+    'triple': '3',
+    'homerun': 'HR',
+    'walk': '四',
+    'hbp': '死',
+    'error': 'E',
+    'strikeout': 'K',
+    'groundout': 'ゴ',
+    'flyout': 'フ',
+    'lineout': 'ラ',
+    'sacrifice': '犠',
+    'fc': 'FC',
+    'dp': '併'
+};
+
+// 現在の状態
+let state = {};
+
+// LocalStorageキー（フォールバック用）
+const STORAGE_KEY = 'baseballScoreboard';
+
+// API設定
+const API_BASE_URL = 'http://localhost:3000/api';
+let useAPI = true; // APIが利用可能かどうか
+
+// BroadcastChannel（タブ間リアルタイム同期用）
+const CHANNEL_NAME = 'baseballScoreboard';
+let broadcastChannel = null;
+
+// ページモード判定
+let isAdminMode = false;
+let isDisplayMode = false;
+
+// ==================== 初期化 ====================
+document.addEventListener('DOMContentLoaded', async () => {
+    // ページモード判定
+    checkPageMode();
+    
+    // APIヘルスチェック
+    await checkAPIHealth();
+    
+    // 状態の読み込み
+    await loadState();
+    
+    // 管理モードの場合のみ打順入力フォームを生成
+    if (isAdminMode) {
+        generateLineupInputs();
+    }
+    
+    // UIの更新
+    updateDisplay();
+    
+    // イベントリスナーの設定（管理モードのみ）
+    if (isAdminMode) {
+        setupEventListeners();
+    }
+    
+    // BroadcastChannelの設定（全モードで有効化）
+    setupBroadcastChannel();
+    
+    // 表示モードの場合、定期的に同期（フォールバック）
+    if (isDisplayMode) {
+        setupStorageSync();
+    }
+});
+
+/**
+ * ページモードを判定（管理画面 or 表示画面）
+ */
+function checkPageMode() {
+    // bodyのクラスでモードを判定
+    isAdminMode = document.body.classList.contains('admin-mode');
+    isDisplayMode = document.body.classList.contains('display-mode');
+    
+    // URLパラメータでオーバーレイモードを判定
+    const urlParams = new URLSearchParams(window.location.search);
+    const mode = urlParams.get('mode');
+    
+    if (mode === 'overlay') {
+        document.body.classList.add('overlay-mode');
+    }
+}
+
+/**
+ * APIヘルスチェック
+ */
+async function checkAPIHealth() {
+    try {
+        const response = await fetch(`${API_BASE_URL}/health`, { 
+            method: 'GET',
+            signal: AbortSignal.timeout(3000) // 3秒タイムアウト
+        });
+        if (response.ok) {
+            useAPI = true;
+            console.log('✅ APIサーバーに接続しました');
+        } else {
+            throw new Error('API not available');
+        }
+    } catch (e) {
+        useAPI = false;
+        console.warn('⚠️ APIサーバーに接続できません。localStorageを使用します。');
+    }
+}
+
+/**
+ * BroadcastChannelのセットアップ（タブ間リアルタイム同期）
+ */
+function setupBroadcastChannel() {
+    try {
+        broadcastChannel = new BroadcastChannel(CHANNEL_NAME);
+        
+        // メッセージ受信時の処理
+        broadcastChannel.onmessage = (event) => {
+            if (event.data && event.data.type === 'STATE_UPDATE') {
+                console.log('📡 ブロードキャスト受信: 状態を更新します');
+                // 受信した状態をマージして更新
+                state = deepMerge(JSON.parse(JSON.stringify(DEFAULT_STATE)), event.data.state);
+                // localStorageにもバックアップ
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+                // UIを即座に更新
+                updateDisplay();
+            }
+        };
+        
+        console.log('✅ BroadcastChannel が有効になりました');
+    } catch (e) {
+        console.warn('⚠️ BroadcastChannel は利用できません:', e);
+    }
+}
+
+/**
+ * 状態変更を他のタブにブロードキャスト
+ */
+function broadcastState() {
+    if (broadcastChannel) {
+        try {
+            broadcastChannel.postMessage({
+                type: 'STATE_UPDATE',
+                state: state,
+                timestamp: Date.now()
+            });
+            console.log('📤 状態をブロードキャストしました');
+        } catch (e) {
+            console.warn('ブロードキャスト失敗:', e);
+        }
+    }
+}
+
+/**
+ * 表示モード用：定期的に状態を同期（フォールバック）
+ */
+function setupStorageSync() {
+    // BroadcastChannelが使えない場合のフォールバック
+    // ポーリング間隔を長めに設定（BroadcastChannelがメインなので）
+    setInterval(async () => {
+        await loadState();
+        updateDisplay();
+    }, 2000); // 2秒ごとにチェック（フォールバック用）
+}
+
+/**
+ * 状態を読み込む（API優先、フォールバックでlocalStorage）
+ */
+async function loadState() {
+    // APIが利用可能な場合
+    if (useAPI) {
+        try {
+            const response = await fetch(`${API_BASE_URL}/state`);
+            if (response.ok) {
+                const data = await response.json();
+                state = deepMerge(JSON.parse(JSON.stringify(DEFAULT_STATE)), data.state);
+                // localStorageにもバックアップ
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+                return;
+            }
+        } catch (e) {
+            console.warn('APIからの読み込みに失敗:', e);
+        }
+    }
+    
+    // フォールバック: localStorage
+    try {
+        const saved = localStorage.getItem(STORAGE_KEY);
+        if (saved) {
+            const parsed = JSON.parse(saved);
+            state = deepMerge(JSON.parse(JSON.stringify(DEFAULT_STATE)), parsed);
+        } else {
+            state = JSON.parse(JSON.stringify(DEFAULT_STATE));
+        }
+    } catch (e) {
+        console.error('状態の読み込みに失敗:', e);
+        state = JSON.parse(JSON.stringify(DEFAULT_STATE));
+    }
+}
+
+/**
+ * オブジェクトの深いマージ
+ */
+function deepMerge(target, source) {
+    for (const key in source) {
+        if (source[key] && typeof source[key] === 'object' && !Array.isArray(source[key])) {
+            if (!target[key]) target[key] = {};
+            deepMerge(target[key], source[key]);
+        } else {
+            target[key] = source[key];
+        }
+    }
+    return target;
+}
+
+/**
+ * 状態を保存する（API優先、フォールバックでlocalStorage）
+ */
+async function saveState() {
+    // 常にlocalStorageにも保存（バックアップ）
+    try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    } catch (e) {
+        console.error('localStorageへの保存に失敗:', e);
+    }
+    
+    // BroadcastChannelで他のタブにリアルタイム同期
+    broadcastState();
+    
+    // APIが利用可能な場合
+    if (useAPI) {
+        try {
+            await fetch(`${API_BASE_URL}/state`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ state })
+            });
+        } catch (e) {
+            console.warn('APIへの保存に失敗:', e);
+        }
+    }
+}
+
+// ==================== 表示更新 ====================
+/**
+ * 全ての表示を更新する
+ */
+function updateDisplay() {
+    updateTeamDisplay();
+    updateInningDisplay();
+    updateCountDisplay();
+    updateRunnerDisplay();
+    updateScoreDisplay();
+    updateRHEDisplay();
+    updateControlPanel();
+    updateLineupDisplay();
+    updateCurrentBatterDisplay();
+}
+
+/**
+ * チーム名の表示を更新
+ */
+function updateTeamDisplay() {
+    // 表示画面用のチーム名表示（存在する場合のみ更新）
+    const awayDisplay = document.querySelector('#team-away-display .team-name');
+    const homeDisplay = document.querySelector('#team-home-display .team-name');
+    if (awayDisplay) awayDisplay.textContent = state.teams.away;
+    if (homeDisplay) homeDisplay.textContent = state.teams.home;
+}
+
+/**
+ * イニング表示を更新
+ */
+function updateInningDisplay() {
+    const halfSymbol = state.inning.half === 'top' ? '▲' : '▼';
+    const halfText = state.inning.half === 'top' ? '表' : '裏';
+    
+    // 表示画面用（存在する場合のみ更新）
+    const inningHalf = document.getElementById('inning-half');
+    const inningNumber = document.getElementById('inning-number');
+    if (inningHalf) inningHalf.textContent = halfSymbol;
+    if (inningNumber) inningNumber.textContent = state.inning.number;
+    
+    // 管理パネルの表示（存在する場合のみ更新）
+    const inningInfo = document.getElementById('inning-info');
+    if (inningInfo) inningInfo.textContent = `${state.inning.number}回 ${halfText}`;
+}
+
+/**
+ * カウント表示を更新
+ */
+function updateCountDisplay() {
+    // ボール
+    const ballDots = document.querySelectorAll('#ball-dots .dot');
+    ballDots.forEach((dot, i) => {
+        dot.classList.toggle('active', i < state.count.ball);
+    });
+    
+    // ストライク
+    const strikeDots = document.querySelectorAll('#strike-dots .dot');
+    strikeDots.forEach((dot, i) => {
+        dot.classList.toggle('active', i < state.count.strike);
+    });
+    
+    // アウト
+    const outDots = document.querySelectorAll('#out-dots .dot');
+    outDots.forEach((dot, i) => {
+        dot.classList.toggle('active', i < state.count.out);
+    });
+}
+
+/**
+ * ランナー表示を更新
+ */
+function updateRunnerDisplay() {
+    // 表示画面用（存在する場合のみ更新）
+    const runnerFirst = document.getElementById('runner-first');
+    const runnerSecond = document.getElementById('runner-second');
+    const runnerThird = document.getElementById('runner-third');
+    if (runnerFirst) runnerFirst.classList.toggle('active', state.runners.first);
+    if (runnerSecond) runnerSecond.classList.toggle('active', state.runners.second);
+    if (runnerThird) runnerThird.classList.toggle('active', state.runners.third);
+}
+
+/**
+ * 得点表示を更新
+ */
+function updateScoreDisplay() {
+    // 合計得点を計算
+    const awayTotal = state.scores.away.reduce((sum, score) => sum + score, 0);
+    const homeTotal = state.scores.home.reduce((sum, score) => sum + score, 0);
+    
+    // 表示画面用（存在する場合のみ更新）
+    const awayTotalEl = document.getElementById('away-total');
+    const homeTotalEl = document.getElementById('home-total');
+    if (awayTotalEl) awayTotalEl.textContent = awayTotal;
+    if (homeTotalEl) homeTotalEl.textContent = homeTotal;
+    
+    // R（得点）の更新
+    state.stats.away.r = awayTotal;
+    state.stats.home.r = homeTotal;
+}
+
+/**
+ * R/H/E表示を更新
+ */
+function updateRHEDisplay() {
+    // 表示画面用（存在する場合のみ更新）
+    const awayR = document.getElementById('away-r');
+    const awayH = document.getElementById('away-h');
+    const awayE = document.getElementById('away-e');
+    const homeR = document.getElementById('home-r');
+    const homeH = document.getElementById('home-h');
+    const homeE = document.getElementById('home-e');
+    
+    if (awayR) awayR.textContent = state.stats.away.r;
+    if (awayH) awayH.textContent = state.stats.away.h;
+    if (awayE) awayE.textContent = state.stats.away.e;
+    if (homeR) homeR.textContent = state.stats.home.r;
+    if (homeH) homeH.textContent = state.stats.home.h;
+    if (homeE) homeE.textContent = state.stats.home.e;
+}
+
+/**
+ * 管理パネルの表示を更新
+ */
+function updateControlPanel() {
+    // 管理モードでない場合は何もしない
+    if (!isAdminMode) return;
+    
+    // チーム名入力
+    const awayNameInput = document.getElementById('away-name');
+    const homeNameInput = document.getElementById('home-name');
+    if (awayNameInput) awayNameInput.value = state.teams.away;
+    if (homeNameInput) homeNameInput.value = state.teams.home;
+    
+    // ランナーボタンの状態
+    const btnRunner1 = document.getElementById('btn-runner-1');
+    const btnRunner2 = document.getElementById('btn-runner-2');
+    const btnRunner3 = document.getElementById('btn-runner-3');
+    if (btnRunner1) btnRunner1.classList.toggle('active', state.runners.first);
+    if (btnRunner2) btnRunner2.classList.toggle('active', state.runners.second);
+    if (btnRunner3) btnRunner3.classList.toggle('active', state.runners.third);
+    
+    // 現在の攻撃チーム表示
+    const attackingTeam = state.inning.half === 'top' ? state.teams.away : state.teams.home;
+    const scoringTeamLabel = document.getElementById('scoring-team-label');
+    if (scoringTeamLabel) scoringTeamLabel.textContent = `${attackingTeam}（攻撃中）`;
+    
+    // 現在イニングの得点
+    const inningIndex = state.inning.number - 1;
+    const currentScore = state.inning.half === 'top' 
+        ? state.scores.away[inningIndex] 
+        : state.scores.home[inningIndex];
+    const currentInningScore = document.getElementById('current-inning-score');
+    if (currentInningScore) currentInningScore.textContent = currentScore;
+}
+
+/**
+ * 打順入力フォームを生成
+ */
+function generateLineupInputs() {
+    ['away', 'home'].forEach(team => {
+        const container = document.getElementById(`lineup-input-${team}`);
+        // コンテナが存在しない場合（表示画面など）はスキップ
+        if (!container) return;
+        container.innerHTML = '';
+        
+        for (let i = 0; i < 9; i++) {
+            const row = document.createElement('div');
+            row.className = 'lineup-input-row';
+            row.innerHTML = `
+                <span class="lineup-input-order">${i + 1}</span>
+                <input type="text" 
+                       class="lineup-input-name" 
+                       data-team="${team}" 
+                       data-order="${i}"
+                       placeholder="${i + 1}番打者"
+                       maxlength="10"
+                       value="${state.lineup[team][i] || ''}">
+            `;
+            container.appendChild(row);
+        }
+    });
+}
+
+/**
+ * 打順ボードの表示を更新
+ */
+function updateLineupDisplay() {
+    // 打順ボードが存在しない場合（管理画面のみの場合）はスキップ
+    const lineupAwayName = document.getElementById('lineup-away-name');
+    const lineupHomeName = document.getElementById('lineup-home-name');
+    
+    // チーム名更新（存在する場合のみ）
+    if (lineupAwayName) lineupAwayName.textContent = state.teams.away;
+    if (lineupHomeName) lineupHomeName.textContent = state.teams.home;
+    
+    ['away', 'home'].forEach(team => {
+        const container = document.getElementById(`${team}-lineup`);
+        // コンテナが存在しない場合はスキップ
+        if (!container) return;
+        
+        container.innerHTML = '';
+        
+        const currentBatterIndex = state.currentBatter[team];
+        const isAttacking = (state.inning.half === 'top' && team === 'away') ||
+                           (state.inning.half === 'bottom' && team === 'home');
+        
+        for (let i = 0; i < 9; i++) {
+            const playerName = state.lineup[team][i] || ((i + 1) + '番');
+            const results = state.atBatResults[team][i] || [];
+            const isActive = isAttacking && i === currentBatterIndex;
+            
+            const playerDiv = document.createElement('div');
+            playerDiv.className = 'lineup-player' + (isActive ? ' active' : '');
+            
+            // 結果バッジのHTML生成
+            const resultBadges = results.map(result => 
+                '<span class="result-badge ' + result + '">' + (RESULT_LABELS[result] || result) + '</span>'
+            ).join('');
+            
+            playerDiv.innerHTML = 
+                '<span class="player-order">' + (i + 1) + '</span>' +
+                '<span class="player-name">' + playerName + '</span>' +
+                '<div class="player-results">' + resultBadges + '</div>';
+            container.appendChild(playerDiv);
+        }
+    });
+}
+
+/**
+ * 現在の打者情報を更新
+ */
+function updateCurrentBatterDisplay() {
+    const team = state.inning.half === 'top' ? 'away' : 'home';
+    const batterIndex = state.currentBatter[team];
+    const batterName = state.lineup[team][batterIndex] || '---';
+    
+    // 管理画面用（存在する場合のみ更新）
+    const batterOrderEl = document.getElementById('current-batter-order');
+    const batterNameEl = document.getElementById('current-batter-name');
+    if (batterOrderEl) batterOrderEl.textContent = batterIndex + 1;
+    if (batterNameEl) batterNameEl.textContent = batterName;
+}
+
+// ==================== イベントリスナー ====================
+function setupEventListeners() {
+    // チーム名変更
+    document.getElementById('away-name').addEventListener('input', (e) => {
+        state.teams.away = e.target.value || 'アウェイ';
+        updateDisplay();
+        saveState();
+    });
+    
+    document.getElementById('home-name').addEventListener('input', (e) => {
+        state.teams.home = e.target.value || 'ホーム';
+        updateDisplay();
+        saveState();
+    });
+    
+    // ボール
+    document.getElementById('btn-ball').addEventListener('click', () => {
+        if (state.count.ball < 3) {
+            state.count.ball++;
+            if (state.count.ball >= 3) {
+                // フォアボール（4つ目のボール） - カウントリセット
+                resetCount();
+            }
+        }
+        updateDisplay();
+        saveState();
+    });
+    
+    document.getElementById('btn-ball-reset').addEventListener('click', () => {
+        state.count.ball = 0;
+        updateDisplay();
+        saveState();
+    });
+    
+    // ストライク
+    document.getElementById('btn-strike').addEventListener('click', () => {
+        if (state.count.strike < 2) {
+            state.count.strike++;
+            if (state.count.strike >= 2) {
+                // 三振（3つ目のストライク） - アウト追加 & カウントリセット
+                addOut();
+            }
+        }
+        updateDisplay();
+        saveState();
+    });
+    
+    document.getElementById('btn-strike-reset').addEventListener('click', () => {
+        state.count.strike = 0;
+        updateDisplay();
+        saveState();
+    });
+    
+    // アウト
+    document.getElementById('btn-out').addEventListener('click', () => {
+        addOut();
+        updateDisplay();
+        saveState();
+    });
+    
+    document.getElementById('btn-out-reset').addEventListener('click', () => {
+        state.count.out = 0;
+        updateDisplay();
+        saveState();
+    });
+    
+    // カウントリセット（打席交代）
+    document.getElementById('btn-count-reset').addEventListener('click', () => {
+        resetCount();
+        updateDisplay();
+        saveState();
+    });
+    
+    // ランナー
+    document.getElementById('btn-runner-1').addEventListener('click', () => {
+        state.runners.first = !state.runners.first;
+        updateDisplay();
+        saveState();
+    });
+    
+    document.getElementById('btn-runner-2').addEventListener('click', () => {
+        state.runners.second = !state.runners.second;
+        updateDisplay();
+        saveState();
+    });
+    
+    document.getElementById('btn-runner-3').addEventListener('click', () => {
+        state.runners.third = !state.runners.third;
+        updateDisplay();
+        saveState();
+    });
+    
+    document.getElementById('btn-runner-clear').addEventListener('click', () => {
+        state.runners.first = false;
+        state.runners.second = false;
+        state.runners.third = false;
+        updateDisplay();
+        saveState();
+    });
+    
+    // イニング操作
+    document.getElementById('btn-inning-prev').addEventListener('click', () => {
+        if (state.inning.half === 'bottom') {
+            state.inning.half = 'top';
+        } else if (state.inning.number > 1) {
+            state.inning.number--;
+            state.inning.half = 'bottom';
+        }
+        updateDisplay();
+        saveState();
+    });
+    
+    document.getElementById('btn-inning-next').addEventListener('click', () => {
+        advanceInning();
+        updateDisplay();
+        saveState();
+    });
+    
+    // 得点操作
+    document.getElementById('btn-score-plus').addEventListener('click', () => {
+        const inningIndex = state.inning.number - 1;
+        const team = state.inning.half === 'top' ? 'away' : 'home';
+        state.scores[team][inningIndex]++;
+        updateDisplay();
+        saveState();
+    });
+    
+    document.getElementById('btn-score-minus').addEventListener('click', () => {
+        const inningIndex = state.inning.number - 1;
+        const team = state.inning.half === 'top' ? 'away' : 'home';
+        if (state.scores[team][inningIndex] > 0) {
+            state.scores[team][inningIndex]--;
+        }
+        updateDisplay();
+        saveState();
+    });
+    
+    // R/H/E操作
+    document.querySelectorAll('[data-team][data-stat]').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const team = btn.dataset.team;
+            const stat = btn.dataset.stat;
+            const action = btn.dataset.action;
+            
+            if (action === 'minus') {
+                if (state.stats[team][stat] > 0) {
+                    state.stats[team][stat]--;
+                }
+            } else {
+                state.stats[team][stat]++;
+            }
+            updateDisplay();
+            saveState();
+        });
+    });
+    
+    // 試合リセット
+    document.getElementById('btn-reset-game').addEventListener('click', () => {
+        if (confirm('本当に試合データをリセットしますか？\nこの操作は取り消せません。')) {
+            state = JSON.parse(JSON.stringify(DEFAULT_STATE));
+            generateLineupInputs();
+            updateDisplay();
+            saveState();
+        }
+    });
+    
+    // ==================== 打順関連イベント ====================
+    
+    // 打順入力タブ切り替え
+    document.getElementById('btn-tab-away-lineup').addEventListener('click', () => {
+        document.getElementById('btn-tab-away-lineup').classList.add('active');
+        document.getElementById('btn-tab-home-lineup').classList.remove('active');
+        document.getElementById('lineup-input-away').classList.add('active');
+        document.getElementById('lineup-input-home').classList.remove('active');
+    });
+    
+    document.getElementById('btn-tab-home-lineup').addEventListener('click', () => {
+        document.getElementById('btn-tab-home-lineup').classList.add('active');
+        document.getElementById('btn-tab-away-lineup').classList.remove('active');
+        document.getElementById('lineup-input-home').classList.add('active');
+        document.getElementById('lineup-input-away').classList.remove('active');
+    });
+    
+    // 選手名入力
+    document.querySelectorAll('.lineup-input-name').forEach(input => {
+        input.addEventListener('input', (e) => {
+            const team = e.target.dataset.team;
+            const order = parseInt(e.target.dataset.order);
+            state.lineup[team][order] = e.target.value;
+            updateLineupDisplay();
+            updateCurrentBatterDisplay();
+            saveState();
+        });
+    });
+    
+    // 動的に生成された打順入力にもイベントを設定
+    document.getElementById('lineup-input-away').addEventListener('input', handleLineupInput);
+    document.getElementById('lineup-input-home').addEventListener('input', handleLineupInput);
+    
+    // 打席結果ボタン
+    document.querySelectorAll('[data-result]').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const result = btn.dataset.result;
+            recordAtBatResult(result);
+        });
+    });
+    
+    // 前の打者/次の打者
+    document.getElementById('btn-prev-batter').addEventListener('click', () => {
+        const team = state.inning.half === 'top' ? 'away' : 'home';
+        state.currentBatter[team] = (state.currentBatter[team] - 1 + 9) % 9;
+        updateDisplay();
+        saveState();
+    });
+    
+    document.getElementById('btn-next-batter').addEventListener('click', () => {
+        const team = state.inning.half === 'top' ? 'away' : 'home';
+        state.currentBatter[team] = (state.currentBatter[team] + 1) % 9;
+        updateDisplay();
+        saveState();
+    });
+    
+    // 結果取り消し
+    document.getElementById('btn-undo-result').addEventListener('click', () => {
+        undoLastResult();
+    });
+}
+
+/**
+ * 打順入力ハンドラ
+ */
+function handleLineupInput(e) {
+    if (e.target.classList.contains('lineup-input-name')) {
+        const team = e.target.dataset.team;
+        const order = parseInt(e.target.dataset.order);
+        state.lineup[team][order] = e.target.value;
+        updateLineupDisplay();
+        updateCurrentBatterDisplay();
+        saveState();
+    }
+}
+
+/**
+ * 打席結果を記録
+ */
+function recordAtBatResult(result) {
+    const team = state.inning.half === 'top' ? 'away' : 'home';
+    const batterIndex = state.currentBatter[team];
+    
+    // 結果を追加
+    state.atBatResults[team][batterIndex].push(result);
+    
+    // 履歴に追加（取り消し用）
+    state.resultHistory.push({
+        team: team,
+        batterIndex: batterIndex,
+        result: result
+    });
+    
+    // ヒット系の場合、H+1
+    if (['single', 'double', 'triple', 'homerun'].includes(result)) {
+        state.stats[team].h++;
+    }
+    
+    // カウントリセット
+    resetCount();
+    
+    // 次の打者へ進める
+    state.currentBatter[team] = (state.currentBatter[team] + 1) % 9;
+    
+    updateDisplay();
+    saveState();
+}
+
+/**
+ * 直前の結果を取り消す
+ */
+function undoLastResult() {
+    if (state.resultHistory.length === 0) {
+        alert('取り消す結果がありません。');
+        return;
+    }
+    
+    const lastResult = state.resultHistory.pop();
+    const { team, batterIndex, result } = lastResult;
+    
+    // 結果を削除
+    const results = state.atBatResults[team][batterIndex];
+    const idx = results.lastIndexOf(result);
+    if (idx !== -1) {
+        results.splice(idx, 1);
+    }
+    
+    // ヒット系の場合、H-1
+    if (['single', 'double', 'triple', 'homerun'].includes(result)) {
+        if (state.stats[team].h > 0) {
+            state.stats[team].h--;
+        }
+    }
+    
+    // 打者を戻す
+    state.currentBatter[team] = batterIndex;
+    
+    updateDisplay();
+    saveState();
+}
+
+// ==================== ヘルパー関数 ====================
+/**
+ * カウントをリセット（打席交代時）
+ */
+function resetCount() {
+    state.count.ball = 0;
+    state.count.strike = 0;
+}
+
+/**
+ * アウトを追加（3アウトでイニング進行）
+ */
+function addOut() {
+    if (state.count.out < 2) {
+        state.count.out++;
+        resetCount();
+    } else {
+        // 3アウトチェンジ
+        state.count.out = 0;
+        resetCount();
+        clearRunners();
+        advanceInning();
+    }
+}
+
+/**
+ * ランナーをクリア
+ */
+function clearRunners() {
+    state.runners.first = false;
+    state.runners.second = false;
+    state.runners.third = false;
+}
+
+/**
+ * イニングを進める
+ */
+function advanceInning() {
+    if (state.inning.half === 'top') {
+        state.inning.half = 'bottom';
+    } else {
+        state.inning.half = 'top';
+        if (state.inning.number < 12) {
+            state.inning.number++;
+        }
+    }
+}
+
