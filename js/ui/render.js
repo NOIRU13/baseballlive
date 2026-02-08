@@ -260,8 +260,9 @@ export function updateLineupDisplay(state, isAdminMode) {
             const playerDiv = document.createElement('div');
             playerDiv.className = 'lineup-item' + (isActive ? ' active' : '');
             
+            const posClass = getPositionClass(pos);
             playerDiv.innerHTML = '<span class="order-num">' + (i + 1) + '</span>' +
-                '<span class="player-pos">' + pos + '</span>' +
+                '<span class="player-pos ' + posClass + '">' + pos + '</span>' +
                 '<span class="player-name">' + playerName + '</span>';
             container.appendChild(playerDiv);
         }
@@ -274,7 +275,7 @@ export function updateLineupDisplay(state, isAdminMode) {
                 pitcherDiv.className = 'lineup-item pitcher-item';
                 
                 pitcherDiv.innerHTML = '<span class="order-num">P</span>' +
-                    '<span class="player-pos">投</span>' +
+                    '<span class="player-pos pos-pitcher">投</span>' +
                     '<span class="player-name">' + pitcherName + '</span>';
                 container.appendChild(pitcherDiv);
             }
@@ -285,6 +286,23 @@ export function updateLineupDisplay(state, isAdminMode) {
     if (isAdminMode) {
         syncLineupInputs(state);
     }
+
+    // 長い名前の自動縮小
+    // DOM更新直後だとレイアウトが確定していない場合があるため、少し待つか
+    // 強制レイアウトさせる。ここではrequestAnimationFrameを使用。
+    requestAnimationFrame(adjustTextScale);
+}
+
+/**
+ * 守備位置に応じたクラスを返す
+ */
+function getPositionClass(pos) {
+    if (pos === '投') return 'pos-pitcher';
+    if (pos === '捕') return 'pos-catcher';
+    if (['一', '二', '三', '遊'].includes(pos)) return 'pos-infielder';
+    if (['左', '中', '右'].includes(pos)) return 'pos-outfielder';
+    if (['指', 'DH'].includes(pos)) return 'pos-dh';
+    return '';
 }
 
 /**
@@ -455,4 +473,29 @@ function setValue(id, value) {
 function toggleClass(id, className, condition) {
     const el = document.getElementById(id);
     if (el) el.classList.toggle(className, condition);
+}
+
+/**
+ * 選手名が長すぎる場合に縮小表示する
+ */
+function adjustTextScale() {
+    const names = document.querySelectorAll('.player-name');
+    
+    names.forEach(el => {
+        // 幅制約がない場合は何もしない
+        if (el.clientWidth === 0) return;
+        
+        // 一旦リセット
+        el.style.transform = 'none';
+        el.style.width = 'auto'; // 自然な幅に戻す
+        
+        const scrollW = el.scrollWidth;
+        const clientW = el.clientWidth;
+        
+        if (scrollW > clientW) {
+            const scale = clientW / scrollW;
+            el.style.transformOrigin = 'left center';
+            el.style.transform = `scaleX(${scale})`;
+        }
+    });
 }

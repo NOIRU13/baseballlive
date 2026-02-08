@@ -10,11 +10,6 @@
   color: #fff;
   padding: 15px 0;
   margin-bottom: 25px;
-  /* Gold Gradient Text */
-  background: var(--grad-gold);
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
   
   text-shadow: 0 2px 4px rgba(0,0,0,0.5);
   border-bottom: 2px solid var(--accent);
@@ -80,21 +75,71 @@
 }
 
 .player-pos {
-  font-size: 22px;
-  color: var(--text-muted);
-  width: 50px;
-  text-align: center;
-  font-weight: 700;
+  font-size: 20px;
+  width: 44px;
+  height: 36px;
+  display: flex; /* Flex to center text */
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  font-weight: 900;
+  text-shadow: 1px 1px 0 rgba(0,0,0,0.5);
+  box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+  margin-right: 15px;
+  background: rgba(255, 255, 255, 0.1); /* Default */
+  color: #fff;
+  border: 1px solid rgba(255,255,255,0.2);
+}
+
+/* Prospi Style Position Colors */
+.pos-pitcher {
+    background: linear-gradient(180deg, #e74c3c 0%, #c0392b 100%);
+    border-color: #e74c3c;
+    box-shadow: 0 0 10px rgba(231, 76, 60, 0.4);
+}
+.pos-catcher {
+    background: linear-gradient(180deg, #3498db 0%, #2980b9 100%);
+    border-color: #3498db;
+    box-shadow: 0 0 10px rgba(52, 152, 219, 0.4);
+}
+.pos-infielder {
+    background: linear-gradient(180deg, #f1c40f 0%, #f39c12 100%);
+    border-color: #f1c40f;
+    color: #2c3e50; /* Black/Dark text for yellow bg */
+    text-shadow: none;
+    box-shadow: 0 0 10px rgba(241, 196, 15, 0.4);
+}
+.pos-outfielder {
+    background: linear-gradient(180deg, #2ecc71 0%, #27ae60 100%);
+    border-color: #2ecc71;
+    box-shadow: 0 0 10px rgba(46, 204, 113, 0.4);
+}
+.pos-dh {
+    background: linear-gradient(180deg, #9b59b6 0%, #8e44ad 100%);
+    border-color: #9b59b6;
+    box-shadow: 0 0 10px rgba(155, 89, 182, 0.4);
 }
 
 .player-name {
+  flex: 1; /* Allow taking up remaining space */
+  min-width: 0; /* Enable shrinking mechanisms in flex */
   font-size: 28px;
   font-weight: 600;
   color: #fff;
   white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  /* overflow: hidden is kept to define the boundary, but text-overflow is removed */
+  overflow: visible; /* Changed to visible so transform can be seen if needed, but actually relying on scale */
+  /* Actually for scaling calculation we might need the scrollWidth unconstrained? 
+     No, with flex:1 and min-width:0, the clientWidth is the frame. 
+     The content will overflow if shorter. 
+     Wait, if I want to detect overflow, I need the content to naturally expand?
+     If I set flex:1, width is constrained. scrollWidth will show true width. 
+     So I can keep overflow:visible or hidden. If hidden, I can just scale inner. */
+  overflow: visible; 
+  text-overflow: clip; /* Remove ellipsis */
   text-shadow: 1px 1px 0 #000;
+  transform-origin: left center; /* Prepare for scaling */
+  display: block; /* Ensure properties apply */
 }
 
 /* ==================== 選手詳細表示 (Bottom Left/Right) ==================== */
