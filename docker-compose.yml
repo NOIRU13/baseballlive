@@ -1,0 +1,44 @@
+version: "3.8"
+
+services:
+  # MySQL データベース
+  mysql:
+    image: mysql:8.0
+    container_name: baseball-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: baseball_live
+      MYSQL_USER: baseball
+      MYSQL_PASSWORD: baseball123
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql
+    command: --default-authentication-plugin=mysql_native_password
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Node.js APIサーバー
+  api:
+    build: ./server
+    container_name: baseball-api
+    ports:
+      - "3000:3000"
+    environment:
+      DB_HOST: mysql
+      DB_USER: baseball
+      DB_PASSWORD: baseball123
+      DB_NAME: baseball_live
+    depends_on:
+      mysql:
+        condition: service_healthy
+    volumes:
+      - ./server:/app
+      - /app/node_modules
+
+volumes:
+  mysql_data:

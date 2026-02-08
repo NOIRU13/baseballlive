@@ -1,0 +1,266 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>スコアボード管理 - Baseball Live</title>
+    <link rel="stylesheet" href="style.css" />
+    <!-- Google Fonts: スポーツ向けの視認性の高いフォント -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@500;700;900&family=Oswald:wght@500;700&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body class="admin-mode">
+    <!-- ==================== 管理パネル ==================== -->
+    <div id="control-panel" class="control-panel">
+      <h1 class="panel-title">⚾ スコアボード管理</h1>
+      
+      <!-- 表示ページへのリンク -->
+      <section class="control-section link-section">
+        <a href="index.html" target="_blank" class="btn btn-full btn-link">📺 スコアボード表示を開く</a>
+      </section>
+
+      <!-- チーム名編集 -->
+      <section class="control-section">
+        <h2>チーム名</h2>
+        <div class="team-inputs">
+          <div class="input-group">
+            <label for="away-name">先攻（アウェイ）</label>
+            <input
+              type="text"
+              id="away-name"
+              placeholder="アウェイ"
+              maxlength="10"
+            />
+          </div>
+          <div class="input-group">
+            <label for="home-name">後攻（ホーム）</label>
+            <input
+              type="text"
+              id="home-name"
+              placeholder="ホーム"
+              maxlength="10"
+            />
+          </div>
+        </div>
+      </section>
+
+      <!-- カウント操作 -->
+      <section class="control-section">
+        <h2>カウント</h2>
+        <div class="count-controls">
+          <div class="control-group">
+            <span class="control-label">ボール</span>
+            <div class="btn-group">
+              <button id="btn-ball" class="btn btn-ball">B +</button>
+              <button id="btn-ball-reset" class="btn btn-reset">
+                リセット
+              </button>
+            </div>
+          </div>
+          <div class="control-group">
+            <span class="control-label">ストライク</span>
+            <div class="btn-group">
+              <button id="btn-strike" class="btn btn-strike">S +</button>
+              <button id="btn-strike-reset" class="btn btn-reset">
+                リセット
+              </button>
+            </div>
+          </div>
+          <div class="control-group">
+            <span class="control-label">アウト</span>
+            <div class="btn-group">
+              <button id="btn-out" class="btn btn-out">O +</button>
+              <button id="btn-out-reset" class="btn btn-reset">リセット</button>
+            </div>
+          </div>
+        </div>
+        <button id="btn-count-reset" class="btn btn-full btn-warning">
+          カウントリセット（打席交代）
+        </button>
+      </section>
+
+      <!-- ランナー操作 -->
+      <section class="control-section">
+        <h2>ランナー</h2>
+        <div class="runner-controls">
+          <button id="btn-runner-1" class="btn btn-runner">1塁</button>
+          <button id="btn-runner-2" class="btn btn-runner">2塁</button>
+          <button id="btn-runner-3" class="btn btn-runner">3塁</button>
+        </div>
+        <button id="btn-runner-clear" class="btn btn-full btn-warning">
+          ランナークリア
+        </button>
+      </section>
+
+      <!-- イニング操作 -->
+      <section class="control-section">
+        <h2>イニング</h2>
+        <div class="inning-controls">
+          <button id="btn-inning-prev" class="btn btn-inning">◀ 前</button>
+          <span class="inning-info" id="inning-info">1回 表</span>
+          <button id="btn-inning-next" class="btn btn-inning">次 ▶</button>
+        </div>
+      </section>
+
+      <!-- 得点操作 -->
+      <section class="control-section">
+        <h2>得点（現在イニング）</h2>
+        <div class="score-controls">
+          <div class="score-team">
+            <span class="team-label" id="scoring-team-label">攻撃チーム</span>
+            <div class="btn-group">
+              <button id="btn-score-minus" class="btn btn-score">−</button>
+              <span id="current-inning-score" class="current-score">0</span>
+              <button id="btn-score-plus" class="btn btn-score">＋</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- R/H/E操作 -->
+      <section class="control-section">
+        <h2>ヒット / エラー</h2>
+        <div class="rhe-controls">
+          <div class="rhe-team-controls">
+            <span class="team-label">先攻</span>
+            <div class="btn-group">
+              <button data-team="away" data-stat="h" class="btn btn-stat">
+                H +
+              </button>
+              <button
+                data-team="away"
+                data-stat="h"
+                data-action="minus"
+                class="btn btn-stat-minus"
+              >
+                H −
+              </button>
+              <button data-team="away" data-stat="e" class="btn btn-stat">
+                E +
+              </button>
+              <button
+                data-team="away"
+                data-stat="e"
+                data-action="minus"
+                class="btn btn-stat-minus"
+              >
+                E −
+              </button>
+            </div>
+          </div>
+          <div class="rhe-team-controls">
+            <span class="team-label">後攻</span>
+            <div class="btn-group">
+              <button data-team="home" data-stat="h" class="btn btn-stat">
+                H +
+              </button>
+              <button
+                data-team="home"
+                data-stat="h"
+                data-action="minus"
+                class="btn btn-stat-minus"
+              >
+                H −
+              </button>
+              <button data-team="home" data-stat="e" class="btn btn-stat">
+                E +
+              </button>
+              <button
+                data-team="home"
+                data-stat="e"
+                data-action="minus"
+                class="btn btn-stat-minus"
+              >
+                E −
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 打順・選手名入力 -->
+      <section class="control-section">
+        <h2>打順・選手名入力</h2>
+        <div class="lineup-input-tabs">
+          <button id="btn-tab-away-lineup" class="btn btn-tab active">先攻（アウェイ）</button>
+          <button id="btn-tab-home-lineup" class="btn btn-tab">後攻（ホーム）</button>
+        </div>
+        <div id="lineup-input-away" class="lineup-input-panel active">
+          <!-- 動的に生成 -->
+        </div>
+        <div id="lineup-input-home" class="lineup-input-panel">
+          <!-- 動的に生成 -->
+        </div>
+      </section>
+
+      <!-- 打席結果入力 -->
+      <section class="control-section">
+        <h2>打席結果入力</h2>
+        <div class="at-bat-info">
+          <div class="current-batter-info">
+            <span class="batter-order" id="current-batter-order">1</span>
+            <span class="batter-name" id="current-batter-name">---</span>
+          </div>
+          <div class="at-bat-label">現在の打者</div>
+        </div>
+        <div class="result-buttons">
+          <div class="result-row">
+            <span class="result-category">安打</span>
+            <div class="btn-group">
+              <button data-result="single" class="btn btn-result btn-hit">単打</button>
+              <button data-result="double" class="btn btn-result btn-hit">二塁打</button>
+              <button data-result="triple" class="btn btn-result btn-hit">三塁打</button>
+              <button data-result="homerun" class="btn btn-result btn-homerun">本塁打</button>
+            </div>
+          </div>
+          <div class="result-row">
+            <span class="result-category">出塁</span>
+            <div class="btn-group">
+              <button data-result="walk" class="btn btn-result btn-walk">四球</button>
+              <button data-result="hbp" class="btn btn-result btn-walk">死球</button>
+              <button data-result="error" class="btn btn-result btn-error">エラー</button>
+            </div>
+          </div>
+          <div class="result-row">
+            <span class="result-category">凡退</span>
+            <div class="btn-group">
+              <button data-result="strikeout" class="btn btn-result btn-out-result">三振</button>
+              <button data-result="groundout" class="btn btn-result btn-out-result">ゴロ</button>
+              <button data-result="flyout" class="btn btn-result btn-out-result">フライ</button>
+              <button data-result="lineout" class="btn btn-result btn-out-result">ライナー</button>
+            </div>
+          </div>
+          <div class="result-row">
+            <span class="result-category">その他</span>
+            <div class="btn-group">
+              <button data-result="sacrifice" class="btn btn-result btn-other">犠打</button>
+              <button data-result="fc" class="btn btn-result btn-other">FC</button>
+              <button data-result="dp" class="btn btn-result btn-out-result">併殺</button>
+            </div>
+          </div>
+        </div>
+        <div class="batter-nav">
+          <button id="btn-prev-batter" class="btn btn-batter-nav">◀ 前の打者</button>
+          <button id="btn-next-batter" class="btn btn-batter-nav">次の打者 ▶</button>
+        </div>
+        <button id="btn-undo-result" class="btn btn-full btn-warning">
+          直前の結果を取り消す
+        </button>
+      </section>
+
+      <!-- リセット -->
+      <section class="control-section">
+        <h2>試合管理</h2>
+        <button id="btn-reset-game" class="btn btn-full btn-danger">
+          🔄 試合データ全リセット
+        </button>
+      </section>
+    </div>
+
+    <script src="script.js"></script>
+  </body>
+</html>
