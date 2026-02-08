@@ -1,0 +1,44 @@
+@charset "UTF-8";
+
+/* ==================== CSS変数（テーマ設定） ==================== */
+:root {
+  /* メインカラー (Prospi Style: Deep Metallic Red & Gold) */
+  --primary: #a61e4d; /* 深いクリムゾン */
+  --primary-dark: #5c0028; 
+  --primary-light: #d6336c;
+  
+  --accent: #ffd700; /* ゴールド */
+  --accent-dark: #b8860b;
+  --accent-glow: rgba(255, 215, 0, 0.6);
+
+  /* 背景・テキスト */
+  --bg-dark: #0f172a; /* 深いネイビーブラック */
+  --bg-panel: rgba(15, 23, 42, 0.85); /* 半透明パネル背景 */
+  --text-light: #ffffff;
+  --text-muted: #cbd5e1;
+  
+  /* サイドバー背景（ガラスモーフィズム） */
+  --bg-sidebar: rgba(15, 23, 42, 0.6);
+  --sidebar-border: 1px solid rgba(255, 255, 255, 0.1);
+
+  /* カウント用カラー (Neon Style) */
+  --ball-color: #00ff00; /* ネオングリーン */
+  --strike-color: #ffff00; /* ネオンイエロー */
+  --out-color: #ff0000; /* ネオンレッド */
+
+  /* ランナー */
+  --runner-active: #ffd700;
+  --runner-inactive: rgba(255, 255, 255, 0.2);
+
+  /* フォント */
+  --font-main: "Noto Sans JP", sans-serif;
+  --font-score: "Oswald", sans-serif;
+
+  /* Prospiグラデーション & エフェクト */
+  --grad-metallic: linear-gradient(180deg, #ffffff 0%, #e2e2e2 20%, #a0a0a0 50%, #d4d4d4 100%);
+  --grad-gold: linear-gradient(135deg, #ffd700 0%, #fdb931 50%, #b8860b 100%);
+  --grad-dark-glass: linear-gradient(180deg, rgba(20, 30, 48, 0.9) 0%, rgba(36, 59, 85, 0.95) 100%);
+  --shadow-neon: 0 0 10px rgba(255, 215, 0, 0.5);
+  --bevel-light: inset 1px 1px 0 rgba(255, 255, 255, 0.3);
+  --bevel-dark: inset -1px -1px 2px rgba(0, 0, 0, 0.5);
+}

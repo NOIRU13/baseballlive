@@ -1,0 +1,19 @@
+@charset "UTF-8";
+
+/* ==================== リセット & 基本スタイル ==================== */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: var(--font-main);
+  background: black; /* 配信向けに黒背景 */
+  color: var(--text-light);
+  min-height: 100vh;
+}
+
+body.display-mode {
+  overflow: hidden;
+}

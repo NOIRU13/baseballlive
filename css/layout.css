@@ -1,0 +1,71 @@
+@charset "UTF-8";
+
+/* ==================== Broadcast Layout (1920x1080) ==================== */
+#broadcast-layout {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 1920px;
+  height: 1080px;
+  /* Prospi-style Background: Deep Blue Stadium Night Atmosphere */
+  background: 
+    radial-gradient(circle at 50% 30%, rgba(20, 30, 50, 0.4) 0%, rgba(10, 15, 30, 0.9) 70%),
+    linear-gradient(180deg, #0f172a 0%, #1e293b 50%, #0f172a 100%);
+  background-size: cover;
+  transform-origin: center center;
+  display: flex; /* 全体をFlexコンテナに */
+  overflow: hidden;
+  font-family: var(--font-main);
+  color: var(--text-light);
+}
+
+/* --- サイドバー --- */
+.sidebar {
+  width: 320px;
+  height: 100%;
+  background: var(--grad-dark-glass);
+  backdrop-filter: blur(10px);
+  display: flex;
+  flex-direction: column;
+  padding: 20px;
+  border-right: 2px solid var(--accent); /* 左サイドバー用デフォルト */
+  box-shadow: 10px 0 30px rgba(0,0,0,0.8);
+  z-index: 10;
+  position: relative;
+}
+
+.sidebar::before {
+  content: "";
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: 
+    linear-gradient(45deg, transparent 48%, rgba(255,255,255,0.05) 50%, transparent 52%);
+  background-size: 200% 200%;
+  pointer-events: none;
+}
+
+.right-sidebar {
+  border-right: none;
+  border-left: 2px solid var(--accent);
+  box-shadow: -10px 0 30px rgba(0,0,0,0.8);
+}
+
+/* --- 中央 (透明エリア) --- */
+.center-space {
+  flex: 1; /* 残りの幅を全部使う */
+  /* background: rgba(0, 255, 0, 0.1); */ /* デバッグ用 */
+  /* ここは完全に透明 */
+}
+
+/* --- サイドバーヘッダー -> see player.css */
+
+/* --- ラインナップリスト --- */
+.lineup-list {
+  flex: 1;
+  overflow-y: auto;
+  /* スクロールバー非表示 */
+  scrollbar-width: none;
+}
+.lineup-list::-webkit-scrollbar {
+  display: none;
+}

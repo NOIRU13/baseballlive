@@ -1,0 +1,238 @@
+@charset "UTF-8";
+
+/* ==================== 選手リストレイアウト (Sidebar Content) ==================== */
+/* ==================== 選手リストレイアウト (Sidebar Content) ==================== */
+.sidebar-header {
+  font-family: var(--font-score);
+  font-size: 32px;
+  font-weight: 900;
+  text-align: center;
+  color: #fff;
+  padding: 10px 0;
+  margin-bottom: 20px;
+  /* Gold Gradient Text */
+  background: var(--grad-gold);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  
+  text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+  border-bottom: 2px solid var(--accent);
+  position: relative;
+}
+
+.sidebar-header::after {
+  content: "";
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--accent), transparent);
+  filter: blur(2px);
+}
+
+.lineup-list {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  overflow: hidden; /* はみ出し防止 */
+}
+
+.lineup-item {
+  display: flex;
+  align-items: center;
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0) 100%);
+  padding: 10px 15px;
+  border-radius: 4px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  transition: all 0.3s ease;
+  position: relative;
+}
+
+.lineup-item.active {
+  background: linear-gradient(90deg, rgba(255, 215, 0, 0.4) 0%, rgba(255, 215, 0, 0.1) 80%, transparent 100%);
+  border-left: 4px solid var(--accent);
+  transform: translateX(5px) scale(1.02);
+  box-shadow: 0 0 20px rgba(255, 215, 0, 0.2);
+  z-index: 5;
+}
+
+.order-num {
+  font-family: var(--font-score);
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--accent);
+  width: 35px;
+  text-align: center;
+  margin-right: 10px;
+}
+
+.player-pos {
+  font-size: 16px;
+  color: var(--text-muted);
+  width: 40px;
+  text-align: center;
+  font-weight: 700;
+}
+
+.player-name {
+  font-size: 20px;
+  font-weight: 600;
+  color: #fff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-shadow: 1px 1px 0 #000;
+}
+
+/* ==================== 選手詳細表示 (Bottom Left/Right) ==================== */
+.player-display-bottom {
+  position: absolute;
+  bottom: 30px;
+  width: 420px; /* 少し幅広に */
+  height: 140px;
+  background: var(--grad-dark-glass);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255,255,255,0.2);
+  border-top: 2px solid var(--accent);
+  border-radius: 0 0 16px 16px; /* 形状調整 */
+  padding: 15px 25px;
+  color: #fff;
+  z-index: 15;
+  box-shadow: 
+    0 10px 40px rgba(0,0,0,0.9),
+    inset 0 1px 0 rgba(255,255,255,0.3);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+/* 形状的なアクセント（斜めカット風） */
+.player-display-bottom::before {
+  content: "";
+  position: absolute;
+  top: -10px; left: 0; right: 0;
+  height: 10px;
+  background: var(--accent);
+  clip-path: polygon(0 100%, 20px 0, 100% 0, 100% 100%);
+  opacity: 0.8;
+}
+
+.player-display-bottom.left {
+  left: 360px; /* サイドバー(320px) + マージン */
+  border-left: 5px solid var(--accent);
+}
+
+.player-display-bottom.right {
+  right: 360px; /* サイドバー(320px) + マージン */
+  border-right: 5px solid var(--accent);
+  text-align: right;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+.player-role-label {
+  font-family: var(--font-score);
+  font-size: 18px;
+  color: var(--accent);
+  margin-bottom: 5px;
+  letter-spacing: 2px;
+  font-weight: 700;
+  text-shadow: 1px 1px 0 #000;
+}
+
+.player-name-large {
+  font-size: 32px;
+  font-weight: 900;
+  margin-bottom: 10px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-shadow: 2px 2px 0 #000;
+  width: 100%;
+}
+
+.player-stats-row {
+  font-size: 18px;
+  color: var(--text-muted);
+  min-height: 24px;
+  display: flex;
+  gap: 15px;
+  flex-wrap: wrap;
+}
+
+/* 投手成績用のスタイル */
+.stat-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.stat-label {
+  font-size: 14px;
+  color: var(--accent);
+  font-weight: 700;
+  letter-spacing: 1px;
+}
+
+#pitcher-innings,
+#pitcher-strikeouts,
+#pitcher-runs {
+  font-family: var(--font-score);
+  font-size: 22px;
+  font-weight: 900;
+  color: #fff;
+  text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
+}
+
+.player-display-bottom.right .player-stats-row {
+  justify-content: flex-end;
+}
+
+/* 打席結果バッジ */
+.stat-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255,255,255,0.2);
+  border-radius: 4px;
+  font-size: 16px;
+  font-weight: 700;
+  color: #ddd;
+  margin-right: 5px;
+}
+.stat-badge:last-child {
+    background: rgba(255, 215, 0, 0.2);
+    border-color: var(--accent);
+    color: #fff;
+}
+
+/* Broadcast Batter Display Override */
+#player-display-left .current-batter-info {
+    justify-content: flex-start;
+    gap: 20px;
+}
+
+#player-display-left .batter-order {
+    width: 60px;
+    height: 60px;
+    font-size: 32px;
+}
+
+#player-display-left .batter-name {
+    font-size: 48px;
+    line-height: 1.2;
+}
+
+#player-display-left .at-bat-label {
+    font-size: 18px;
+    color: var(--text-muted);
+    letter-spacing: 2px;
+    font-weight: 700;
+    margin-top: 10px;
+    text-align: left;
+    padding-left: 5px;
+}
