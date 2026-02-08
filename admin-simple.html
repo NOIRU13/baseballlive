@@ -462,78 +462,67 @@
                 </div>
               </section>
 
-              <!-- 投手成績 (新設) -->
-              <section class="control-section">
-                <h2>投手成績 (当日)</h2>
-                <div class="pitcher-stats-summary" style="font-size: 11px;">
-                  <div style="margin-bottom: 8px; padding: 5px; background: rgba(255,255,255,0.05); border-radius: 4px;">
-                    <div style="color: #ffd700; margin-bottom: 2px;">先攻投手</div>
-                    <div style="display: flex; gap: 10px;">
-                      <span>回: <input type="number" id="pitcher-innings-away" step="0.1" style="width: 35px; background: #222; color: #fff; border: 1px solid #444;"></span>
-                      <span>振: <input type="number" id="pitcher-k-away" style="width: 30px; background: #222; color: #fff; border: 1px solid #444;"></span>
-                      <span>失: <input type="number" id="pitcher-runs-away" style="width: 30px; background: #222; color: #fff; border: 1px solid #444;" readonly></span>
-                    </div>
-                  </div>
-                  <div style="padding: 5px; background: rgba(255,255,255,0.05); border-radius: 4px;">
-                    <div style="color: #ffd700; margin-bottom: 2px;">後攻投手</div>
-                    <div style="display: flex; gap: 10px;">
-                      <span>回: <input type="number" id="pitcher-innings-home" step="0.1" style="width: 35px; background: #222; color: #fff; border: 1px solid #444;"></span>
-                      <span>振: <input type="number" id="pitcher-k-home" style="width: 30px; background: #222; color: #fff; border: 1px solid #444;"></span>
-                      <span>失: <input type="number" id="pitcher-runs-home" style="width: 30px; background: #222; color: #fff; border: 1px solid #444;" readonly></span>
-                    </div>
-                  </div>
-                  <div style="margin-top: 5px; font-size: 9px; color: #888;">※失点は打席ログから自動計算されます</div>
-                </div>
-              </section>
-              
-              <!-- 打者操作 -->
-              <section class="control-section">
-                <h2>打者操作</h2>
-                <div class="at-bat-info">
-                  <div class="current-batter-info">
-                    <span class="batter-order" id="current-batter-order">1</span>
-                    <span class="batter-name" id="current-batter-name-control">---</span>
-                  </div>
-                  <div class="at-bat-label">現在の打者</div>
-                </div>
-                <div class="batter-nav">
-                  <button id="btn-prev-batter" class="btn btn-batter-nav">◀ 前</button>
-                  <button id="btn-next-batter" class="btn btn-batter-nav">次 ▶</button>
-                </div>
-              </section>
-              
-              <!-- リセット -->
-              <section class="control-section">
-                <button id="btn-reset-game" class="btn btn-full btn-danger">
-                  🔄 全リセット
-                </button>
-              </section>
-            </div>
-
-            <!-- 打席履歴詳細 (新設) -->
-            <div class="control-column log-column" style="flex: 2; min-width: 400px;">
                <section class="control-section">
-                 <h2>打席ログ・詳細編集</h2>
-                 <div id="at-bat-log-container" class="log-table-wrapper" style="overflow-y: auto; max-height: 500px; background: rgba(0,0,0,0.2); border-radius: 4px; padding: 5px;">
-                   <table class="at-bat-log-table" style="width: 100%; border-collapse: collapse; font-size: 11px;">
-                     <thead>
-                       <tr style="border-bottom: 1px solid #444; color: #ffd700;">
-                         <th style="padding: 4px; text-align: left;">イニング</th>
-                         <th style="padding: 4px; text-align: left;">打者</th>
-                         <th style="padding: 4px; text-align: left;">投手</th>
-                         <th style="padding: 4px; text-align: left;">結果</th>
-                         <th style="padding: 4px; text-align: center;">打点</th>
-                         <th style="padding: 4px; text-align: center;">失点</th>
-                         <th style="padding: 4px; text-align: center;">自責</th>
-                         <th style="padding: 4px; text-align: center;">操作</th>
-                       </tr>
-                     </thead>
-                     <tbody id="at-bat-log-body">
-                       <!-- JSで生成 -->
-                     </tbody>
-                   </table>
+                 <div class="log-tabs-header" style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; border-bottom:1px solid rgba(255,255,255,0.1); padding-bottom:5px;">
+                    <h2 style="margin:0; border:none; padding:0;">ログ・詳細編集</h2>
+                    <div class="log-tabs-buttons">
+                        <button id="btn-tab-atbat" class="db-tab-btn active" onclick="switchLogTab('atbat')">打席ログ</button>
+                        <button id="btn-tab-pitcher" class="db-tab-btn" onclick="switchLogTab('pitcher')">投手ログ</button>
+                    </div>
+                 </div>
+
+                 <!-- Tab: At-Bat Log -->
+                 <div id="log-content-atbat" style="display:block;">
+                     <div id="at-bat-log-container" class="log-table-wrapper" style="overflow-y: auto; max-height: 500px; background: rgba(0,0,0,0.2); border-radius: 4px; padding: 5px;">
+                       <table class="at-bat-log-table" style="width: 100%; border-collapse: collapse; font-size: 11px;">
+                         <thead>
+                           <tr style="border-bottom: 1px solid #444; color: #ffd700;">
+                             <th style="padding: 4px; text-align: left; width: 40px;">回</th>
+                             <th style="padding: 4px; text-align: left;">打者</th>
+                             <th style="padding: 4px; text-align: left;">投手</th>
+                             <th style="padding: 4px; text-align: left; width: 50px;">結果</th>
+                             <th style="padding: 4px; text-align: center; width: 30px;">点</th>
+                             <!-- <th style="padding: 4px; text-align: center; width: 30px;">失</th>
+                             <th style="padding: 4px; text-align: center; width: 30px;">責</th> -->
+                             <th style="padding: 4px; text-align: right; width: 40px;">操作</th>
+                           </tr>
+                         </thead>
+                         <tbody id="at-bat-log-body">
+                           <!-- JSで生成 -->
+                         </tbody>
+                       </table>
+                     </div>
+                 </div>
+
+                 <!-- Tab: Pitcher Log -->
+                 <div id="log-content-pitcher" style="display:none;">
+                    <div class="pitcher-stats-container" style="display:flex; justify-content:center; gap:10px; padding: 5px;">
+                      <div class="pitcher-group" style="flex:1;">
+                        <h3 style="font-size:12px; margin-bottom:5px; color:#ffd700;">先攻 (Away)</h3>
+                        <div id="pitcher-stats-away-list" class="pitcher-list">
+                            <!-- JSで生成 -->
+                        </div>
+                      </div>
+                      <div class="pitcher-group" style="flex:1;">
+                        <h3 style="font-size:12px; margin-bottom:5px; color:#ffd700;">後攻 (Home)</h3>
+                        <div id="pitcher-stats-home-list" class="pitcher-list">
+                            <!-- JSで生成 -->
+                        </div>
+                      </div>
+                    </div>
+                    <div style="margin-top: 5px; font-size: 9px; color: #888; text-align:center;">※手動修正可 (回, 奪三振, 失点, 自責)</div>
                  </div>
                </section>
+               
+               <script>
+                   function switchLogTab(tabName) {
+                       document.getElementById('log-content-atbat').style.display = tabName === 'atbat' ? 'block' : 'none';
+                       document.getElementById('log-content-pitcher').style.display = tabName === 'pitcher' ? 'block' : 'none';
+                       
+                       document.getElementById('btn-tab-atbat').classList.toggle('active', tabName === 'atbat');
+                       document.getElementById('btn-tab-pitcher').classList.toggle('active', tabName === 'pitcher');
+                   }
+               </script>
             </div>
           </div>
       </div>

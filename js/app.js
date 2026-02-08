@@ -636,6 +636,136 @@ function setupEventListeners() {
         }
     });
 
+    // 投手成績の手動編集 (Delegation)
+    document.addEventListener('change', (e) => {
+        if (e.target.classList.contains('pitcher-stat-input')) {
+            const team = e.target.dataset.team;
+            const pitcherName = e.target.dataset.pitcher;
+            const statType = e.target.dataset.stat; // 'innings', 'k', 'runs', 'er'
+            let value = parseFloat(e.target.value);
+            
+            if (isNaN(value)) value = 0;
+
+            // Historyを更新
+            if (!State.state.pitcherStatsHistory) State.state.pitcherStatsHistory = {};
+            if (!State.state.pitcherStatsHistory[pitcherName]) {
+                State.state.pitcherStatsHistory[pitcherName] = { innings: 0, strikeouts: 0, runs: 0, earnedRuns: 0, walks: 0 };
+            }
+            
+            const propMap = {
+                'innings': 'innings',
+                'k': 'strikeouts',
+                'runs': 'runs',
+                'er': 'earnedRuns'
+            };
+            const prop = propMap[statType];
+            
+            if (prop) {
+                State.state.pitcherStatsHistory[pitcherName][prop] = value;
+                
+                // inningsが変更された場合、outsも再計算して同期する（次のプレイでの上書き防止）
+                if (statType === 'innings') {
+                     const whole = Math.floor(value);
+                     const frac = Math.round((value - whole) * 10);
+                     // 0.1 => 1 out, 0.2 => 2 outs. 
+                     // 注意: ユーザーが 0.3 と入力した場合は 3 outs ＝ 1.0 に補正されるべきだが、
+                     // ここでは単純に計算する。game.jsの計算式 (outs % 3 * 0.1) と逆変換。
+                     const outs = (whole * 3) + frac;
+                     State.state.pitcherStatsHistory[pitcherName].outs = outs;
+                }
+
+                // 現在の投手の場合、state.pitcherStats[team] も同期する
+                const currentPitcher = State.state.pitcher ? State.state.pitcher[team] : '';
+                if (pitcherName === currentPitcher && State.state.pitcherStats && State.state.pitcherStats[team]) {
+                    State.state.pitcherStats[team][prop] = value;
+                    if (statType === 'innings') {
+                        const whole = Math.floor(value);
+                        const frac = Math.round((value - whole) * 10);
+                        const outs = (whole * 3) + frac;
+                        State.state.pitcherStats[team].outs = outs;
+                    }
+                }
+                updateAndSave();
+            }
+        }
+    });
+
+    // 打席ログの編集 (Delegation)
+    document.addEventListener('change', (e) => {
+        if (e.target.classList.contains('log-pitcher-select')) {
+            const id = e.target.dataset.id;
+            const val = e.target.value;
+            updateAtBatLogField(id, 'pitcherName', val);
+        }
+        else if (e.target.classList.contains('log-result-select')) {
+            const id = e.target.dataset.id;
+            const val = e.target.value;
+            updateAtBatLogField(id, 'result', val);
+        }
+        else if (e.target.classList.contains('log-rbi-input')) {
+            const id = e.target.dataset.id;
+            const val = parseInt(e.target.value) || 0;
+            updateAtBatLogField(id, 'rbi', val);
+        }
+    });
+
+    function updateAtBatLogField(id, field, value) {
+        if (!State.state.atBatLog) return;
+        const log = State.state.atBatLog.find(l => l.id === id);
+        if (log) {
+            log[field] = value;
+            
+            // ログ変更を現在の打撃成績(state.atBatResults)に反映
+            recalculateStatsFromLogs(State.state);
+            
+            updateAndSave();
+        }
+    }
+
+    /**
+     * 打席ログから打撃成績(atBatResults, todayRBI)を再計算する
+     * これにより、ログの手動修正が「BATTER」表示等に反映される
+     */
+    function recalculateStatsFromLogs(state) {
+        if (!state.atBatLog) return;
+        
+        // Reset Batter Results & RBI
+        state.atBatResults = {
+            away: Array(9).fill().map(() => []),
+            home: Array(9).fill().map(() => [])
+        };
+        state.todayRBI = {
+            away: Array(9).fill(0),
+            home: Array(9).fill(0)
+        };
+        
+        // Logs are stored Newest First (unshift), so reverse to process chronologically
+        const chronologicalLogs = [...state.atBatLog].reverse();
+        
+        chronologicalLogs.forEach(log => {
+             // Validate team and batterIndex
+             if (log.team && (log.batterIndex !== undefined)) {
+                 const team = log.team;
+                 const idx = log.batterIndex;
+                 
+                 // Ensure array exists (just in case)
+                 if (!state.atBatResults[team]) state.atBatResults[team] = Array(9).fill().map(() => []);
+                 if (!state.atBatResults[team][idx]) state.atBatResults[team][idx] = [];
+                 
+                 // Add Result
+                 if (log.result) {
+                     state.atBatResults[team][idx].push(log.result);
+                 }
+                 
+                 // Add RBI
+                 if (log.rbi) {
+                     if (!state.todayRBI[team]) state.todayRBI[team] = Array(9).fill(0);
+                     state.todayRBI[team][idx] += parseInt(log.rbi || 0);
+                 }
+             }
+        });
+    }
+
 function getCircledNumber(n) {
     const map = { 1:'①', 2:'②', 3:'③', 4:'④' };
     return map[n] || `(${n})`;

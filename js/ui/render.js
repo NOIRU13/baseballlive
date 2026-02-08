@@ -30,6 +30,7 @@ export function updateDisplay(state, isAdminMode, isDisplayMode) {
     // New Features
     if (isDisplayMode || isAdminMode) {
         updateScoreLog(state);
+        updateAtBatLogTable(state);
         updatePitcherRelay(state);
     }
 }
@@ -170,25 +171,143 @@ export function updateControlPanel(state, isAdminMode) {
         setText('current-inning-score', state.scores[team][inningIndex]);
     }
 
-    // 投手成績入力フィールド
-    if (state.pitcherStats) {
-        // 先攻投手
-        const awayPitcherName = state.pitcher ? state.pitcher.away : '';
-        const awayStats = (state.pitcherStatsHistory && awayPitcherName) ? state.pitcherStatsHistory[awayPitcherName] : null;
-        
-        setValue('pitcher-innings-away', awayStats ? (awayStats.innings || 0) : (state.pitcherStats.away.innings || 0));
-        setValue('pitcher-k-away', awayStats ? (awayStats.strikeouts || 0) : (state.pitcherStats.away.strikeouts || 0));
-        const runsAway = awayStats ? (awayStats.runs || 0) : (state.pitcherStats.away.runsFromLog || state.pitcherStats.away.runs || 0);
-        setValue('pitcher-runs-away', runsAway);
-        
-        // 後攻投手
-        const homePitcherName = state.pitcher ? state.pitcher.home : '';
-        const homeStats = (state.pitcherStatsHistory && homePitcherName) ? state.pitcherStatsHistory[homePitcherName] : null;
+    // Pitcher Stats List Update
+    updatePitcherStatsList(state, 'away');
+    updatePitcherStatsList(state, 'home');
+}
 
-        setValue('pitcher-innings-home', homeStats ? (homeStats.innings || 0) : (state.pitcherStats.home.innings || 0));
-        setValue('pitcher-k-home', homeStats ? (homeStats.strikeouts || 0) : (state.pitcherStats.home.strikeouts || 0));
-        const runsHome = homeStats ? (homeStats.runs || 0) : (state.pitcherStats.home.runsFromLog || state.pitcherStats.home.runs || 0);
-        setValue('pitcher-runs-home', runsHome);
+/**
+ * 投手成績リストを更新 (Admin用)
+ */
+function updatePitcherStatsList(state, team) {
+    const container = document.getElementById(`pitcher-stats-${team}-list`);
+    if (!container) return; // Not in admin mode or missing container
+
+    // Get ordered list of pitchers
+    let pitchers = (state.pitcherHistory && state.pitcherHistory[team]) ? [...state.pitcherHistory[team]] : [];
+    
+    // Ensure current pitcher is in the list (at end if not present)
+    const currentPitcher = state.pitcher ? state.pitcher[team] : '';
+    if (currentPitcher && !pitchers.includes(currentPitcher)) {
+        pitchers.push(currentPitcher);
+    }
+    
+    // If no pitchers, show empty message
+    if (pitchers.length === 0) {
+        container.innerHTML = '<div style="color:#555; font-size:10px;">(登板なし)</div>';
+        return;
+    }
+
+    // Check existing rows to decide whether to rebuild
+    const existingRows = Array.from(container.querySelectorAll('.pitcher-stat-row'));
+    const existingNames = existingRows.map(r => r.dataset.pitcher);
+
+    // If list changed (length or content), rebuild
+    if (existingNames.join(',') !== pitchers.join(',')) {
+        container.innerHTML = ''; // Rebuild
+        pitchers.forEach(name => {
+            const row = createPitcherStatRow(team, name);
+            container.appendChild(row);
+        });
+    }
+
+    // Now update values
+    pitchers.forEach(name => {
+        const stats = (state.pitcherStatsHistory && state.pitcherStatsHistory[name]) 
+            ? state.pitcherStatsHistory[name] 
+            : { innings: 0, strikeouts: 0, runs: 0, earnedRuns: 0 };
+            
+        // Find row safely without selector injection issues
+        const row = Array.from(container.children).find(el => el.dataset.pitcher === name);
+        if (!row) return;
+
+        // Highlight current pitcher
+        if (name === currentPitcher) {
+            row.style.background = 'rgba(255, 215, 0, 0.1)';
+            row.style.border = '1px solid rgba(255, 215, 0, 0.3)';
+        } else {
+            row.style.background = 'rgba(255, 255, 255, 0.05)';
+            row.style.border = '1px solid transparent';
+        }
+
+        // Update inputs if not focused
+        updateInputIfNotFocused(row, 'innings', stats.innings !== undefined ? stats.innings : 0);
+        updateInputIfNotFocused(row, 'k', stats.strikeouts !== undefined ? stats.strikeouts : 0);
+        updateInputIfNotFocused(row, 'runs', stats.runs !== undefined ? stats.runs : 0);
+        updateInputIfNotFocused(row, 'er', stats.earnedRuns !== undefined ? stats.earnedRuns : 0);
+    });
+}
+
+function createPitcherStatRow(team, name) {
+    const row = document.createElement('div');
+    row.className = 'pitcher-stat-row';
+    row.dataset.pitcher = name;
+    row.dataset.team = team;
+    row.style.display = 'flex';
+    row.style.alignItems = 'center';
+    row.style.marginBottom = '4px';
+    row.style.padding = '2px';
+    row.style.borderRadius = '3px';
+    row.style.fontSize = '11px';
+    row.style.gap = '4px';
+
+    // Name (Truncate if long)
+    const nameSpan = document.createElement('span');
+    nameSpan.textContent = name;
+    nameSpan.style.width = '70px'; // Slightly larger
+    nameSpan.style.whiteSpace = 'nowrap';
+    nameSpan.style.overflow = 'hidden';
+    nameSpan.style.textOverflow = 'ellipsis';
+    nameSpan.style.textAlign = 'left';
+    nameSpan.title = name;
+    row.appendChild(nameSpan);
+
+    // Inputs
+    ['innings', 'k', 'runs', 'er'].forEach(stat => {
+        const wrap = document.createElement('div');
+        wrap.style.display = 'flex';
+        wrap.style.flexDirection = 'column';
+        wrap.style.alignItems = 'center';
+        
+        const label = document.createElement('span');
+        label.style.fontSize = '8px';
+        label.style.color = '#aaa';
+        label.style.lineHeight = '1';
+        label.textContent = getStatLabel(stat);
+        
+        const input = document.createElement('input');
+        input.type = 'number';
+        input.step = stat === 'innings' ? '0.1' : '1';
+        input.className = 'pitcher-stat-input';
+        input.dataset.team = team;
+        input.dataset.pitcher = name;
+        input.dataset.stat = stat;
+        input.style.width = '32px';
+        input.style.background = '#222';
+        input.style.color = '#fff';
+        input.style.border = '1px solid #444';
+        input.style.borderRadius = '2px';
+        input.style.padding = '2px';
+        input.style.textAlign = 'right';
+        input.style.fontSize = '12px';
+
+        wrap.appendChild(label);
+        wrap.appendChild(input);
+        row.appendChild(wrap);
+    });
+
+    return row;
+}
+
+function getStatLabel(stat) {
+    const map = { innings: '回', k: '振', runs: '失', er: '責' };
+    return map[stat] || stat;
+}
+
+function updateInputIfNotFocused(row, stat, value) {
+    const input = row.querySelector(`input[data-stat="${stat}"]`);
+    if (input && document.activeElement !== input) {
+        input.value = value;
     }
 }
 
@@ -1387,22 +1506,136 @@ function animateLineupRows(team, delayStart = 0, direction = 'left') {
     });
 }
 
+// ... (existing playChangeAnimation)
+
 /**
- * 3アウトチェンジ用アニメーション
+ * 得点ログをパースしてオブジェクトに変換
+ * (Note: Existing parseScoreLog is kept but maybe not used by at-bat-log logic directly if we use state.atBatLog)
  */
-export function playChangeAnimation() {
-    const overlay = document.getElementById('change-overlay');
-    if (!overlay) return;
+
+/**
+ * 打席ログテーブルの更新
+ */
+export function updateAtBatLogTable(state) {
+    const tbody = document.getElementById('at-bat-log-body');
+    if (!tbody) return;
+
+    // state.atBatLog が存在するか確認
+    const logs = state.atBatLog || [];
     
-    // 他のアニメーションをクリア（重なり防止）
-    const resultOverlay = document.getElementById('result-overlay');
-    if (resultOverlay) resultOverlay.classList.remove('active');
+    // 現在の入力フォーカスがある要素のIDを記録（再描画時のフォーカス維持用）
+    const activeId = document.activeElement ? document.activeElement.id : null;
+
+    tbody.innerHTML = '';
     
-    // 表示開始
-    overlay.classList.add('active');
-    
-    // 約6秒後に非表示にする（ゆったりめ）
-    setTimeout(() => {
-        overlay.classList.remove('active');
-    }, 6500);
+    logs.forEach((log, index) => {
+        const tr = document.createElement('tr');
+        tr.style.borderBottom = '1px solid rgba(255,255,255,0.1)';
+        
+        // イニング
+        const tdInning = document.createElement('td');
+        tdInning.textContent = `${log.inning}${log.half === 'top' ? '表' : '裏'}`;
+        tr.appendChild(tdInning);
+        
+        // 打者
+        const tdBatter = document.createElement('td');
+        tdBatter.textContent = log.batterName;
+        tr.appendChild(tdBatter);
+        
+        // 投手 (Editable Select)
+        const tdPitcher = document.createElement('td');
+        const selectPitcher = document.createElement('select');
+        selectPitcher.className = 'log-input log-pitcher-select';
+        selectPitcher.dataset.id = log.id;
+        selectPitcher.style.width = '100px';
+        
+        // 投手リストの取得 (相手チームの投手履歴)
+        const defenseTeam = log.half === 'top' ? 'home' : 'away'; // 打者がtopなら投手はhome
+        const pitchers = (state.pitcherHistory && state.pitcherHistory[defenseTeam]) ? [...state.pitcherHistory[defenseTeam]] : [];
+        // ログにある投手が履歴にない場合も追加
+        if (log.pitcherName && !pitchers.includes(log.pitcherName)) {
+            pitchers.push(log.pitcherName);
+        }
+        
+        populateSimpleOptions(selectPitcher, pitchers, log.pitcherName);
+        tdPitcher.appendChild(selectPitcher);
+        tr.appendChild(tdPitcher);
+        
+        // 結果 (Editable Select)
+        const tdResult = document.createElement('td');
+        const selectResult = document.createElement('select');
+        selectResult.className = 'log-input log-result-select';
+        selectResult.dataset.id = log.id;
+        selectResult.style.width = '70px';
+        
+        const resultOptions = [
+            {v:'strikeout', t:'三振'}, {v:'groundout', t:'ゴロ'}, {v:'flyout', t:'フライ'}, {v:'lineout', t:'ライナー'},
+            {v:'single', t:'単打'}, {v:'double', t:'二塁打'}, {v:'triple', t:'三塁打'}, {v:'homerun', t:'本塁打'},
+            {v:'walk', t:'四球'}, {v:'hbp', t:'死球'}, {v:'error', t:'エラー'},
+            {v:'sacrifice', t:'犠打'}, {v:'fc', t:'野選'}, {v:'dp', t:'併殺'}
+        ];
+        
+        resultOptions.forEach(opt => {
+            const option = document.createElement('option');
+            option.value = opt.v;
+            option.textContent = opt.t;
+            if (log.result === opt.v) option.selected = true;
+            selectResult.appendChild(option);
+        });
+        tdResult.appendChild(selectResult);
+        tr.appendChild(tdResult);
+        
+        // 打点 (Editable Number)
+        const tdRBI = document.createElement('td');
+        const inputRBI = document.createElement('input');
+        inputRBI.type = 'number';
+        inputRBI.className = 'log-input log-rbi-input';
+        inputRBI.dataset.id = log.id;
+        inputRBI.value = log.rbi;
+        inputRBI.style.width = '30px';
+        inputRBI.style.textAlign = 'center';
+        tdRBI.appendChild(inputRBI);
+        tr.appendChild(tdRBI);
+        
+        /* 失点・自責は投手ログ側で管理するので、打席ログからは一旦外す（スペースの都合）
+           User Request: "打席ログは全イニング、全打者の結果、打点、相手投手を編集できるようにしてください"
+           So Pitcher Name, Result, RBI are key.
+        */
+       
+        // 操作 (削除ボタン等) - ここでは削除機能は要求されていないが、あっても良い。
+        // User said: "全イニング、全打者の結果...編集できるように". implying fixing data.
+        const tdAction = document.createElement('td');
+        tdAction.style.textAlign = 'right';
+        /*
+        const btnDel = document.createElement('button');
+        btnDel.textContent = '×';
+        btnDel.className = 'btn btn-danger';
+        btnDel.style.padding = '2px 6px';
+        btnDel.style.fontSize = '10px';
+        btnDel.onclick = () => { if(confirm('削除しますか？')) { ... } };
+        tdAction.appendChild(btnDel);
+        */
+        tr.appendChild(tdAction);
+        
+        tbody.appendChild(tr);
+    });
+}
+
+function populateSimpleOptions(select, items, current) {
+    select.innerHTML = '';
+    items.forEach(item => {
+        const opt = document.createElement('option');
+        opt.value = item;
+        opt.textContent = item;
+        if (item === current) opt.selected = true;
+        select.appendChild(opt);
+    });
+    // Add current if missing (fallback)
+    if (current && !items.includes(current)) {
+         const opt = document.createElement('option');
+         opt.value = current;
+         opt.textContent = current;
+         opt.selected = true;
+         select.appendChild(opt);
+    }
 }
