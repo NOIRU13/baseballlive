@@ -21,7 +21,7 @@
 
 /* --- サイドバー --- */
 .sidebar {
-  width: 320px;
+  width: 400px;
   height: 100%;
   background: var(--grad-dark-glass);
   backdrop-filter: blur(10px);

@@ -4,12 +4,12 @@
 /* ==================== 選手リストレイアウト (Sidebar Content) ==================== */
 .sidebar-header {
   font-family: var(--font-score);
-  font-size: 32px;
+  font-size: 40px;
   font-weight: 900;
   text-align: center;
   color: #fff;
-  padding: 10px 0;
-  margin-bottom: 20px;
+  padding: 15px 0;
+  margin-bottom: 25px;
   /* Gold Gradient Text */
   background: var(--grad-gold);
   -webkit-background-clip: text;
@@ -44,7 +44,7 @@
   display: flex;
   align-items: center;
   background: linear-gradient(90deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0) 100%);
-  padding: 10px 15px;
+  padding: 15px 20px;
   border-radius: 4px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
   transition: all 0.3s ease;
@@ -59,26 +59,36 @@
   z-index: 5;
 }
 
+.pitcher-item {
+  margin-top: 15px;
+  border-top: 1px dashed rgba(255, 255, 255, 0.3);
+  padding-top: 15px;
+}
+
+.pitcher-item .order-num {
+  color: #ff4d4d; /* Red for P */
+}
+
 .order-num {
   font-family: var(--font-score);
-  font-size: 24px;
+  font-size: 32px;
   font-weight: 700;
   color: var(--accent);
-  width: 35px;
+  width: 45px;
   text-align: center;
-  margin-right: 10px;
+  margin-right: 15px;
 }
 
 .player-pos {
-  font-size: 16px;
+  font-size: 22px;
   color: var(--text-muted);
-  width: 40px;
+  width: 50px;
   text-align: center;
   font-weight: 700;
 }
 
 .player-name {
-  font-size: 20px;
+  font-size: 28px;
   font-weight: 600;
   color: #fff;
   white-space: nowrap;
@@ -92,7 +102,7 @@
   position: absolute;
   bottom: 30px;
   width: 420px; /* 少し幅広に */
-  height: 140px;
+  height: 160px;
   background: var(--grad-dark-glass);
   backdrop-filter: blur(10px);
   border: 1px solid rgba(255,255,255,0.2);
@@ -121,12 +131,12 @@
 }
 
 .player-display-bottom.left {
-  left: 360px; /* サイドバー(320px) + マージン */
+  left: 440px; /* サイドバー(400px) + マージン */
   border-left: 5px solid var(--accent);
 }
 
 .player-display-bottom.right {
-  right: 360px; /* サイドバー(320px) + マージン */
+  right: 440px; /* サイドバー(400px) + マージン */
   border-right: 5px solid var(--accent);
   text-align: right;
   display: flex;
@@ -145,7 +155,7 @@
 }
 
 .player-name-large {
-  font-size: 32px;
+  font-size: 54px;
   font-weight: 900;
   margin-bottom: 10px;
   white-space: nowrap;
@@ -153,6 +163,7 @@
   text-overflow: ellipsis;
   text-shadow: 2px 2px 0 #000;
   width: 100%;
+  line-height: 1.2;
 }
 
 .player-stats-row {

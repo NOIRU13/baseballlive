@@ -265,6 +265,20 @@ export function updateLineupDisplay(state, isAdminMode) {
                 '<span class="player-name">' + playerName + '</span>';
             container.appendChild(playerDiv);
         }
+
+        // Pitcher Display
+        if (state.pitcher && state.pitcher[team]) {
+            const pitcherName = state.pitcher[team];
+            if (pitcherName) {
+                const pitcherDiv = document.createElement('div');
+                pitcherDiv.className = 'lineup-item pitcher-item';
+                
+                pitcherDiv.innerHTML = '<span class="order-num">P</span>' +
+                    '<span class="player-pos">投</span>' +
+                    '<span class="player-name">' + pitcherName + '</span>';
+                container.appendChild(pitcherDiv);
+            }
+        }
     });
 
     // 入力フォームの値も同期（Adminのみ）

@@ -149,6 +149,22 @@ export function recordAtBatResult(state, resultCode) {
     if (['single', 'double', 'triple', 'homerun'].includes(resultCode)) {
         state.stats[team].h++;
     }
+
+    // 本塁打の場合：ランナー＋打者を得点に加算し、ランナー一掃
+    if (resultCode === 'homerun') {
+        let runs = 1;
+        if (state.runners.first) runs++;
+        if (state.runners.second) runs++;
+        if (state.runners.third) runs++;
+        
+        const inningIndex = state.inning.number - 1;
+        if (typeof state.scores[team][inningIndex] !== 'number') {
+            state.scores[team][inningIndex] = 0;
+        }
+        state.scores[team][inningIndex] += runs;
+        
+        clearRunners(state);
+    }
     
     // ロジック分岐
     let isChange = false;
