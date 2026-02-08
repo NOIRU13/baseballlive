@@ -501,8 +501,35 @@ body.admin-mode {
 /* Admin AtBat */
 .at-bat-info { text-align: center; margin-bottom: 20px; padding: 10px; background: rgba(0, 0, 0, 0.3); border-radius: 8px; border: 1px solid var(--primary); }
 .current-batter-info { display: flex; align-items: center; justify-content: center; gap: 15px; margin-bottom: 5px; }
-.batter-order { display: flex; align-items: center; justify-content: center; width: 30px; height: 30px; background: var(--accent); color: #000; border-radius: 50%; font-weight: 900; }
-.batter-name { font-size: 20px; font-weight: 700; }
+.batter-order { display: flex; align-items: center; justify-content: center; width: 30px; height: 30px; background: var(--accent); color: #000; border-radius: 50%; font-weight: 900; flex-shrink: 0; }
+.batter-name { font-size: 20px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* Broadcast Batter Display Override */
+#player-display-left .current-batter-info {
+    justify-content: flex-start;
+    gap: 20px;
+}
+
+#player-display-left .batter-order {
+    width: 60px;
+    height: 60px;
+    font-size: 32px;
+}
+
+#player-display-left .batter-name {
+    font-size: 48px;
+    line-height: 1.2;
+}
+
+#player-display-left .at-bat-label {
+    font-size: 18px;
+    color: var(--text-muted);
+    letter-spacing: 2px;
+    font-weight: 700;
+    margin-top: 10px;
+    text-align: left;
+    padding-left: 5px;
+}
 .result-row { display: flex; margin-bottom: 15px; align-items: center; }
 .result-category { width: 60px; font-size: 12px; color: var(--text-muted); }
 .btn-result { min-width: 60px; }

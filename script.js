@@ -572,25 +572,33 @@ function updateBottomStats() {
     if (batterEl) batterEl.textContent = batterName;
 
     // PITCHER
-    // ロジック:
-    // 1. 打順(1-9)の中に守備位置「投」がいれば、その選手を表示 (DHなし/解除)
-    // 2. いなければ、state.pitcher (投手入力欄) の名前を表示 (DHあり)
-    let pitcherName = '---';
-    let pitcherInLineup = false;
+    // ロジック修正:
+    // 1. 投手入力欄 (DH用) に名前があればそれを優先して表示
+    // 2. なければ、打順(1-9)の中の「投」を探して表示
+    // 3. どちらもなければ「投手」と表示
     
-    if (state.positions && state.positions[defenseTeam]) {
-        for (var i = 0; i < 9; i++) {
-            if (state.positions[defenseTeam][i] === '投') {
-                pitcherName = state.lineup[defenseTeam][i] || '投手';
-                pitcherInLineup = true;
-                break;
+    let pitcherName = '---';
+    let dhPitcherInput = (state.pitcher && state.pitcher[defenseTeam]) ? state.pitcher[defenseTeam] : '';
+    
+    // DH入力がある場合、それを優先
+    if (dhPitcherInput && dhPitcherInput.trim() !== '') {
+        pitcherName = dhPitcherInput;
+    } else {
+        // DH入力がない場合、ラインナップから「投」を探す
+        let pitcherInLineup = false;
+        if (state.positions && state.positions[defenseTeam]) {
+            for (var i = 0; i < 9; i++) {
+                if (state.positions[defenseTeam][i] === '投') {
+                    pitcherName = state.lineup[defenseTeam][i] || '投手';
+                    pitcherInLineup = true;
+                    break;
+                }
             }
         }
-    }
-    
-    if (!pitcherInLineup) {
-        // Lineupに投手がいない場合は、投手入力欄の値を使用
-        pitcherName = state.pitcher[defenseTeam] || '投手';
+        
+        if (!pitcherInLineup) {
+            pitcherName = '投手';
+        }
     }
 
     var pitcherEl = document.getElementById('current-pitcher-name');
@@ -879,16 +887,7 @@ function setupEventListeners() {
     // 既存の静的要素に対するリスナー設定はここでは行わない（動的生成時に設定されるため）
     
     // 動的に生成された打順入力にもイベントを設定 (イベント委譲)
-    function handleLineupInput(e) {
-        if (e.target.classList.contains('lineup-input-name')) {
-            var team = e.target.dataset.team;
-            var order = parseInt(e.target.dataset.order);
-            state.lineup[team][order] = e.target.value;
-            updateLineupDisplay();
-            updateCurrentBatterDisplay();
-            saveState();
-        }
-    }
+    // ※handleLineupInput 関数は外部スコープで定義されているものを使用
     
     addListener('lineup-input-away', 'input', handleLineupInput);
     addListener('lineup-input-home', 'input', handleLineupInput);
