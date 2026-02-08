@@ -1,4 +1,5 @@
-const API_BASE = 'http://localhost:3000/api';
+// API設定 (Docker環境では同一オリジンからnginxがプロキシ)
+const API_BASE = '/api';
 
 // DOM読み込み完了時
 document.addEventListener('DOMContentLoaded', () => {
@@ -234,7 +235,7 @@ window.deletePlayer = async (id) => {
 };
 // ==================== 成績管理 ====================
 
-const STATS_API_BASE = 'http://localhost:5000/api';
+const STATS_API_BASE = '/api';
 
 // CSVアップロード
 async function uploadCsv() {
@@ -248,14 +249,14 @@ async function uploadCsv() {
     }
 
     const formData = new FormData();
-    formData.append('file', fileInput.files[0]);
+    formData.append('csv', fileInput.files[0]);
     formData.append('type', typeSelect.value);
 
     statusDiv.textContent = 'アップロード中...';
     statusDiv.style.color = '#fff';
 
     try {
-        const response = await fetch(`${STATS_API_BASE}/import/csv`, {
+        const response = await fetch(`${STATS_API_BASE}/import-csv`, {
             method: 'POST',
             body: formData
         });
@@ -288,7 +289,7 @@ function exportCsv(type) {
         // 今回はとりあえず引数必須とする
         return;
     }
-    window.location.href = `${STATS_API_BASE}/export/csv?type=${type}`;
+    window.location.href = `${STATS_API_BASE}/export-csv?type=${type}`;
 }
 
 // 成績読み込み
@@ -299,7 +300,7 @@ async function loadStats(type) {
     document.getElementById(`btn-stats-${type}`).classList.add('active');
 
     try {
-        const res = await fetch(`${STATS_API_BASE}/stats/${type}`);
+        const res = await fetch(`${STATS_API_BASE}/${type}-stats`);
         const stats = await res.json();
         
         renderStatsTable(stats, type);

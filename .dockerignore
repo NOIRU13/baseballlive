@@ -1,0 +1,9 @@
+# Docker ignore file
+.git
+.gitignore
+*.md
+docs/
+temp_*
+*.bak
+*.old
+node_modules/

@@ -36,7 +36,7 @@ try {
             // 選手基本情報エクスポート
             fputcsv($output, ['選手ID', 'チームID', '選手名', '背番号', 'ポジション', '投打']);
 
-            $sql = "SELECT id, team_id, name, number, position, hand FROM players ORDER BY team_id, number";
+            $sql = "SELECT player_id, team_id, name, uniform_number, position, batting_side FROM players ORDER BY team_id, uniform_number";
             $stmt = $db->query($sql);
 
             while ($row = $stmt->fetch(PDO::FETCH_NUM)) {

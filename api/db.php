@@ -1,16 +1,19 @@
 <?php
-// データベース接続設定
+// データベース接続設定 (Docker対応)
 
 function getDB()
 {
-    $host = 'localhost';
-    $dbname = 'baseball_live';
-    $username = 'root';
-    $password = '';
+    // Docker環境の場合はmysqlコンテナに接続
+    // ローカル環境の場合はlocalhostに接続
+    $host = getenv('DB_HOST') ?: 'mysql';  // Docker Compose のサービス名
+    $dbname = getenv('DB_NAME') ?: 'baseball_live';
+    $username = getenv('DB_USER') ?: 'baseball_user';
+    $password = getenv('DB_PASS') ?: 'baseball_pass';
+    $port = getenv('DB_PORT') ?: '3306';
 
     try {
         $db = new PDO(
-            "mysql:host=$host;dbname=$dbname;charset=utf8mb4",
+            "mysql:host=$host;port=$port;dbname=$dbname;charset=utf8mb4",
             $username,
             $password,
             [

@@ -21,23 +21,32 @@ try {
     switch ($method) {
         case 'GET':
             // チーム一覧取得
-            $sql = "SELECT * FROM teams ORDER BY id";
+            $sql = "SELECT team_id, team_name, team_code, league, short_name FROM teams ORDER BY team_id";
             $stmt = $db->query($sql);
             $teams = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-            // キー名変換は不要だが、JS側で short_name を期待しているためそのまま出力で良い
-            // ただしDBカラム名が name, short_name になっているので、そのまま json_encode すればOK
+            // キー名を変換（フロントエンドとの互換性のため）
+            $result = array_map(function ($team) {
+                return [
+                    'id' => $team['team_id'],
+                    'name' => $team['team_name'],
+                    'code' => $team['team_code'],
+                    'league' => $team['league'],
+                    'short_name' => $team['short_name']
+                ];
+            }, $teams);
 
-            echo json_encode($teams);
+            echo json_encode($result);
             break;
 
         case 'POST':
             // 新規登録
             $data = json_decode(file_get_contents('php://input'), true);
 
-            $sql = "INSERT INTO teams (name, short_name) VALUES (:name, :short_name)";
+            $sql = "INSERT INTO teams (team_name, team_code, short_name) VALUES (:team_name, :team_code, :short_name)";
             $stmt = $db->prepare($sql);
-            $stmt->bindParam(':name', $data['name']);
+            $stmt->bindParam(':team_name', $data['name']);
+            $stmt->bindParam(':team_code', $data['code'] ?? null);
             $stmt->bindParam(':short_name', $data['short_name']);
             $stmt->execute();
 
@@ -53,10 +62,10 @@ try {
 
             $data = json_decode(file_get_contents('php://input'), true);
 
-            $sql = "UPDATE teams SET name = :name, short_name = :short_name WHERE id = :id";
+            $sql = "UPDATE teams SET team_name = :team_name, short_name = :short_name WHERE team_id = :id";
             $stmt = $db->prepare($sql);
             $stmt->bindParam(':id', $id, PDO::PARAM_INT);
-            $stmt->bindParam(':name', $data['name']);
+            $stmt->bindParam(':team_name', $data['name']);
             $stmt->bindParam(':short_name', $data['short_name']);
             $stmt->execute();
 
@@ -70,7 +79,7 @@ try {
                 throw new Exception('IDが指定されていません');
             }
 
-            $sql = "DELETE FROM teams WHERE id = :id";
+            $sql = "DELETE FROM teams WHERE team_id = :id";
             $stmt = $db->prepare($sql);
             $stmt->bindParam(':id', $id, PDO::PARAM_INT);
             $stmt->execute();

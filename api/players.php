@@ -25,7 +25,7 @@ try {
 
             $sql = "SELECT p.*, t.team_name 
                     FROM players p 
-                    LEFT JOIN teams t ON p.team_id = t.id";
+                    LEFT JOIN teams t ON p.team_id = t.team_id";
 
             if ($team_id) {
                 $sql .= " WHERE p.team_id = :team_id";
@@ -33,8 +33,22 @@ try {
 
             $sql .= " ORDER BY 
                         p.team_id, 
-                        FIELD(p.position, 'P', 'C', 'IF', 'OF'), 
-                        CAST(p.number AS UNSIGNED)";
+
+                        CASE 
+                            -- Catcher (Priority 1)
+                            WHEN TRIM(p.position) IN ('C', '捕', '捕手') THEN 1
+                            -- Infield (Priority 2)
+                            WHEN TRIM(p.position) IN ('1B', '2B', '3B', 'SS', 'IF', '一', '二', '三', '遊', '内', '一塁手', '二塁手', '三塁手', '遊撃手', '内野手', '2nd', '3rd', '1st', 'Short') THEN 2
+                            -- Outfield (Priority 3)
+                            WHEN TRIM(p.position) IN ('LF', 'CF', 'RF', 'OF', '左', '中', '右', '外', '左翼手', '中堅手', '右翼手', '外野手', 'Left', 'Center', 'Right') THEN 3
+                            -- Pitcher (Priority 4)
+                            WHEN TRIM(p.position) IN ('P', '投', '投手') THEN 4
+                            -- DH (Priority 5)
+                            WHEN TRIM(p.position) IN ('DH', '指', '指名打者') THEN 5
+                            ELSE 6
+                        END, 
+                        CASE WHEN CAST(p.uniform_number AS UNSIGNED) >= 100 THEN 1 ELSE 0 END,
+                        CAST(p.uniform_number AS UNSIGNED)";
 
             $stmt = $db->prepare($sql);
             if ($team_id) {
@@ -45,14 +59,15 @@ try {
             $players = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
             // キー名を変換
+            // キー名を変換（フロントエンドとの互換性のため）
             $result = array_map(function ($player) {
                 return [
-                    'id' => $player['id'],
+                    'id' => $player['player_id'],
                     'team_id' => $player['team_id'],
                     'name' => $player['name'],
-                    'number' => $player['number'],
+                    'number' => $player['uniform_number'],
                     'position' => $player['position'],
-                    'hand' => $player['hand'],
+                    'hand' => $player['batting_side'] ?? $player['pitching_arm'] ?? '',
                     'team_name' => $player['team_name']
                 ];
             }, $players);
@@ -64,15 +79,15 @@ try {
             // 新規登録
             $data = json_decode(file_get_contents('php://input'), true);
 
-            $sql = "INSERT INTO players (team_id, name, number, position, hand) 
-                    VALUES (:team_id, :name, :number, :position, :hand)";
+            $sql = "INSERT INTO players (team_id, name, uniform_number, position, batting_side) 
+                    VALUES (:team_id, :name, :uniform_number, :position, :batting_side)";
 
             $stmt = $db->prepare($sql);
             $stmt->bindParam(':team_id', $data['team_id'], PDO::PARAM_INT);
             $stmt->bindParam(':name', $data['name']);
-            $stmt->bindParam(':number', $data['number']);
+            $stmt->bindParam(':uniform_number', $data['number']);
             $stmt->bindParam(':position', $data['position']);
-            $stmt->bindParam(':hand', $data['hand']);
+            $stmt->bindParam(':batting_side', $data['hand']);
 
             // 以前の switch 文による投打変換ロジックが不要であれば単純化
             // DBカラム名に合わせて :hand をバインド
@@ -94,18 +109,18 @@ try {
             $sql = "UPDATE players SET 
                         team_id = :team_id,
                         name = :name,
-                        number = :number,
+                        uniform_number = :uniform_number,
                         position = :position,
-                        hand = :hand
-                    WHERE id = :id";
+                        batting_side = :batting_side
+                    WHERE player_id = :id";
 
             $stmt = $db->prepare($sql);
             $stmt->bindParam(':id', $id, PDO::PARAM_INT);
             $stmt->bindParam(':team_id', $data['team_id'], PDO::PARAM_INT);
             $stmt->bindParam(':name', $data['name']);
-            $stmt->bindParam(':number', $data['number']);
+            $stmt->bindParam(':uniform_number', $data['number']);
             $stmt->bindParam(':position', $data['position']);
-            $stmt->bindParam(':hand', $data['hand']);
+            $stmt->bindParam(':batting_side', $data['hand']);
             $stmt->execute();
 
             echo json_encode(['success' => true]);
@@ -118,7 +133,7 @@ try {
                 throw new Exception('IDが指定されていません');
             }
 
-            $sql = "DELETE FROM players WHERE id = :id";
+            $sql = "DELETE FROM players WHERE player_id = :id";
             $stmt = $db->prepare($sql);
             $stmt->bindParam(':id', $id, PDO::PARAM_INT);
             $stmt->execute();

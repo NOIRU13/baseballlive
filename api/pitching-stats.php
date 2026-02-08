@@ -23,9 +23,10 @@ try {
             // 投手成績一覧取得
             $player_id = isset($_GET['player_id']) ? $_GET['player_id'] : null;
 
-            $sql = "SELECT ps.*, p.name as player_name 
+            $sql = "SELECT ps.*, p.name as player_name, t.short_name as team_name
                     FROM pitching_stats ps 
-                    JOIN players p ON ps.player_id = p.player_id";
+                    JOIN players p ON ps.player_id = p.player_id
+                    JOIN teams t ON p.team_id = t.team_id";
 
             if ($player_id) {
                 $sql .= " WHERE ps.player_id = :player_id";

@@ -238,7 +238,7 @@ async function updateSeasonStats(batterName, pitcherName) {
         if (batterId !== lastBatterId) {
             lastBatterId = batterId;
             try {
-                const res = await fetch(`http://localhost:3000/api/stats/batter/${batterId}`);
+                const res = await fetch(`/api/stats/batter/${batterId}`);
                 if (res.ok) {
                     const stats = await res.json();
                     setText('batter-avg', stats.avg);
@@ -265,7 +265,7 @@ async function updateSeasonStats(batterName, pitcherName) {
         if (pitcherId !== lastPitcherId) {
             lastPitcherId = pitcherId;
             try {
-                const res = await fetch(`http://localhost:3000/api/stats/pitcher/${pitcherId}`);
+                const res = await fetch(`/api/stats/pitcher/${pitcherId}`);
                 if (res.ok) {
                     const stats = await res.json();
                     setText('pitcher-era', stats.era);
@@ -570,7 +570,7 @@ function populatePlayerOptions(selectElement, players, currentValue) {
     players.forEach(player => {
         const opt = document.createElement('option');
         opt.value = player.name;
-        opt.textContent = `${player.name} (#${player.number || '-'})`;
+        opt.textContent = `${player.position} - ${player.name} (#${player.number || '-'})`;
         selectElement.appendChild(opt);
     });
     

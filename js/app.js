@@ -260,7 +260,7 @@ function setupEventListeners() {
             // API送信
             if (batterId) {
                 try {
-                    await fetch('http://localhost:3000/api/atbats', {
+                    await fetch('/api/atbats', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
@@ -395,7 +395,7 @@ function nextBatter() {
 async function loadMasterData() {
     try {
         // 選手一覧取得
-        const pRes = await fetch('http://localhost:3000/api/players');
+        const pRes = await fetch('/api/players');
         let pMap = {};
         if (pRes.ok) {
             const players = await pRes.json();
@@ -406,7 +406,7 @@ async function loadMasterData() {
         }
         
         // チーム一覧取得
-        const tRes = await fetch('http://localhost:3000/api/teams');
+        const tRes = await fetch('/api/teams');
         let tMap = {};
         if (tRes.ok) {
             const teams = await tRes.json();
@@ -444,6 +444,22 @@ function populateTeamSelects() {
         homeOpt.textContent = team.name;
         homeSelect.appendChild(homeOpt);
     });
+
+    // 初期値の設定 (保存された状態から復元)
+    if (State.state.teams.away) {
+        const awayTeam = allTeams.find(t => t.name === State.state.teams.away);
+        if (awayTeam) {
+            awaySelect.value = awayTeam.id;
+            teamSelections.away = awayTeam.id;
+        }
+    }
+    if (State.state.teams.home) {
+        const homeTeam = allTeams.find(t => t.name === State.state.teams.home);
+        if (homeTeam) {
+            homeSelect.value = homeTeam.id;
+            teamSelections.home = homeTeam.id;
+        }
+    }
     
     // チーム選択時のイベントリスナー
     awaySelect.addEventListener('change', (e) => {

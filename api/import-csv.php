@@ -40,19 +40,19 @@ try {
                 if (count($row) < 5)
                     continue;
 
-                $sql = "INSERT INTO players (team_id, name, number, position, hand) 
-                        VALUES (:team_id, :name, :number, :position, :hand)
+                $sql = "INSERT INTO players (team_id, name, uniform_number, position, batting_side) 
+                        VALUES (:team_id, :name, :uniform_number, :position, :batting_side)
                         ON DUPLICATE KEY UPDATE 
                         name = VALUES(name), 
                         position = VALUES(position), 
-                        hand = VALUES(hand)";
+                        batting_side = VALUES(batting_side)";
 
                 $stmt = $db->prepare($sql);
                 $stmt->bindParam(':team_id', $row[0], PDO::PARAM_INT);
                 $stmt->bindParam(':name', $row[1]);
-                $stmt->bindParam(':number', $row[2]);
+                $stmt->bindParam(':uniform_number', $row[2]);
                 $stmt->bindParam(':position', $row[3]);
-                $stmt->bindParam(':hand', $row[4]);
+                $stmt->bindParam(':batting_side', $row[4]);
                 $stmt->execute();
                 $count++;
             }

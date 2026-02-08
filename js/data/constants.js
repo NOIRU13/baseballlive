@@ -92,8 +92,8 @@ export const POSITIONS = [
 // LocalStorageキー
 export const STORAGE_KEY = 'baseballScoreboard';
 
-// API設定
-export const API_BASE_URL = 'http://localhost:3000/api';
+// API設定 (Docker環境では同一オリジンからnginxがプロキシ)
+export const API_BASE_URL = '/api';
 
 // BroadcastChannel（タブ間リアルタイム同期用）
 export const CHANNEL_NAME = 'baseballScoreboard';
