@@ -184,3 +184,85 @@
     transform: translateY(0);
   }
 }
+
+/* ==================== 3アウトチェンジ用アニメーション ==================== */
+#change-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: radial-gradient(circle at center, rgba(0, 0, 0, 0.4) 0%, rgba(0, 0, 0, 0.9) 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 300;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 1s ease-in-out;
+}
+
+#change-overlay.active {
+    opacity: 1;
+    pointer-events: all;
+}
+
+#change-content {
+    text-align: center;
+    transform: translateY(20px);
+    transition: transform 1s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+#change-overlay.active #change-content {
+    transform: translateY(0);
+}
+
+.change-line-small {
+    font-family: 'Oswald', sans-serif;
+    font-size: 60px;
+    font-weight: 700;
+    color: rgba(255, 255, 255, 0.8);
+    letter-spacing: 20px;
+    margin-bottom: -10px;
+    opacity: 0;
+    transform: scale(0.8);
+}
+
+.change-line-large {
+    font-family: 'Oswald', sans-serif;
+    font-size: 220px;
+    font-weight: 900;
+    background: linear-gradient(to bottom, #ffd700 20%, #b8860b 80%, #ffd700 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    filter: drop-shadow(0 0 30px rgba(218, 165, 32, 0.6)) drop-shadow(8px 8px 0 #000);
+    letter-spacing: 15px;
+    opacity: 0;
+    transform: scale(1.1);
+}
+
+/* アニメーションシーケンス */
+#change-overlay.active .change-line-small {
+    animation: changeSmallIn 1s cubic-bezier(0.2, 0.8, 0.2, 1) 0.5s forwards;
+}
+
+#change-overlay.active .change-line-large {
+    animation: changeLargeIn 2s cubic-bezier(0.1, 0.9, 0.2, 1) 1.2s forwards,
+               changeGlitter 5s linear infinite;
+}
+
+@keyframes changeSmallIn {
+    0% { opacity: 0; transform: scale(0.8); letter-spacing: 40px; }
+    100% { opacity: 1; transform: scale(1); letter-spacing: 20px; }
+}
+
+@keyframes changeLargeIn {
+    0% { opacity: 0; transform: scale(1.2) translateY(20px); letter-spacing: 40px; }
+    100% { opacity: 1; transform: scale(1) translateY(0); letter-spacing: 15px; }
+}
+
+@keyframes changeGlitter {
+    0%, 100% { filter: drop-shadow(0 0 30px rgba(218, 165, 32, 0.6)) drop-shadow(8px 8px 0 #000); }
+    50% { filter: drop-shadow(0 0 50px rgba(255, 215, 0, 0.9)) drop-shadow(8px 8px 0 #000); }
+}

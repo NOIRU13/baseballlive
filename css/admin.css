@@ -259,3 +259,15 @@ th { color: var(--accent); }
 .btn-walk { background: #f39c12; }
 .btn-other { background: #9b59b6; }
 .btn-out-result { background: #7f8c8d; }
+
+/* Timely Buttons */
+.btn-timely {
+    background: #555;
+    color: #fff;
+}
+.btn-timely.active {
+    background: var(--accent); /* #ffd700 */
+    color: #000;
+    font-weight: bold;
+    box-shadow: 0 0 5px var(--accent);
+}

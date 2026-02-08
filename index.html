@@ -205,8 +205,18 @@
 
       <!-- ==================== 中央：結果アニメーションオーバーレイ ==================== -->
       <div id="result-overlay" class="result-overlay">
-          <div class="result-text" id="result-text">HOMERUN</div>
-      </div>
+    <!-- 結果アニメーション用オーバーレイ -->
+    <div id="result-overlay-inner">
+        <div id="result-text">SINGLE</div>
+    </div>
+
+    <!-- 攻守交代（3アウトチェンジ）用オーバーレイ -->
+    <div id="change-overlay">
+        <div id="change-content">
+            <div class="change-line-small">3 OUTS</div>
+            <div class="change-line-large">CHANGE</div>
+        </div>
+    </div>
     </div>
 
     <!-- 自動スケーリング用スクリプト -->
@@ -239,7 +249,7 @@
           const simpleWindow = window.open(
             'admin-simple.html',
             'simplePanel',
-            'width=800,height=630,left=50,top=50,resizable=yes,scrollbars=yes'
+            'width=1200,height=850,left=50,top=50,resizable=yes,scrollbars=yes'
           );
           
           if (simpleWindow) {

@@ -172,12 +172,23 @@ export function updateControlPanel(state, isAdminMode) {
 
     // 投手成績入力フィールド
     if (state.pitcherStats) {
-        setValue('pitcher-innings-away', state.pitcherStats.away.innings || 0);
-        setValue('pitcher-k-away', state.pitcherStats.away.strikeouts || 0);
-        setValue('pitcher-runs-away', state.pitcherStats.away.runs || 0);
-        setValue('pitcher-innings-home', state.pitcherStats.home.innings || 0);
-        setValue('pitcher-k-home', state.pitcherStats.home.strikeouts || 0);
-        setValue('pitcher-runs-home', state.pitcherStats.home.runs || 0);
+        // 先攻投手
+        const awayPitcherName = state.pitcher ? state.pitcher.away : '';
+        const awayStats = (state.pitcherStatsHistory && awayPitcherName) ? state.pitcherStatsHistory[awayPitcherName] : null;
+        
+        setValue('pitcher-innings-away', awayStats ? (awayStats.innings || 0) : (state.pitcherStats.away.innings || 0));
+        setValue('pitcher-k-away', awayStats ? (awayStats.strikeouts || 0) : (state.pitcherStats.away.strikeouts || 0));
+        const runsAway = awayStats ? (awayStats.runs || 0) : (state.pitcherStats.away.runsFromLog || state.pitcherStats.away.runs || 0);
+        setValue('pitcher-runs-away', runsAway);
+        
+        // 後攻投手
+        const homePitcherName = state.pitcher ? state.pitcher.home : '';
+        const homeStats = (state.pitcherStatsHistory && homePitcherName) ? state.pitcherStatsHistory[homePitcherName] : null;
+
+        setValue('pitcher-innings-home', homeStats ? (homeStats.innings || 0) : (state.pitcherStats.home.innings || 0));
+        setValue('pitcher-k-home', homeStats ? (homeStats.strikeouts || 0) : (state.pitcherStats.home.strikeouts || 0));
+        const runsHome = homeStats ? (homeStats.runs || 0) : (state.pitcherStats.home.runsFromLog || state.pitcherStats.home.runs || 0);
+        setValue('pitcher-runs-home', runsHome);
     }
 }
 
@@ -240,13 +251,20 @@ export function updateBottomStats(state, isDisplayMode) {
     }
 
     // 投手成績
-    GameLogic.updatePitcherStats(state, defenseTeam);
-    if (state.pitcherStats && state.pitcherStats[defenseTeam]) {
+    const historyStats = (state.pitcherStatsHistory && pitcherName) ? state.pitcherStatsHistory[pitcherName] : null;
+    
+    if (historyStats) {
+        setText('pitcher-innings', (historyStats.innings || 0).toFixed(1));
+        setText('pitcher-strikeouts', historyStats.strikeouts || 0);
+        setText('pitcher-walks', historyStats.walks || 0);
+        setText('pitcher-runs', historyStats.runs || 0);
+    } else if (state.pitcherStats && state.pitcherStats[defenseTeam]) {
         const innings = state.pitcherStats[defenseTeam].innings || 0;
         setText('pitcher-innings', innings.toFixed(1));
         setText('pitcher-strikeouts', state.pitcherStats[defenseTeam].strikeouts || 0);
         setText('pitcher-walks', state.pitcherStats[defenseTeam].walks || 0);
-        setText('pitcher-runs', state.pitcherStats[defenseTeam].runs || 0);
+        const runs = state.pitcherStats[defenseTeam].runsFromLog !== undefined ? state.pitcherStats[defenseTeam].runsFromLog : (state.pitcherStats[defenseTeam].runs || 0);
+        setText('pitcher-runs', runs);
     }
 
     // シーズン成績更新 (API)

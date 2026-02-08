@@ -79,15 +79,28 @@
             <section class="simple-section">
               <h3>打席結果 (出塁)</h3>
               <div class="result-buttons">
+                <!-- Row 1: Home Run -->
+                <div class="result-row">
+                  <span class="result-category">本塁打</span>
+                  <button data-result="homerun" class="btn btn-result btn-homerun">本塁打</button>
+                </div>
+                <!-- Row 2: Hits -->
                 <div class="result-row">
                   <span class="result-category">安打</span>
                   <button data-result="single" class="btn btn-result btn-hit">単打</button>
                   <button data-result="double" class="btn btn-result btn-hit">二塁打</button>
                   <button data-result="triple" class="btn btn-result btn-hit">三塁打</button>
-                  <button data-result="homerun" class="btn btn-result btn-homerun">本塁打</button>
                 </div>
+                <!-- Row 3: Timely -->
                 <div class="result-row">
-                  <span class="result-category">四死球</span>
+                  <span class="result-category">ﾀｲﾑﾘｰ</span>
+                  <button id="btn-timely-1" class="btn btn-result btn-timely">1</button>
+                  <button id="btn-timely-2" class="btn btn-result btn-timely">2</button>
+                  <button id="btn-timely-3" class="btn btn-result btn-timely">3</button>
+                </div>
+                <!-- Row 4: Walk, Error, etc -->
+                <div class="result-row">
+                  <span class="result-category">四死球他</span>
                   <button data-result="walk" class="btn btn-result btn-walk">四球</button>
                   <button data-result="hbp" class="btn btn-result btn-walk">死球</button>
                   <button data-result="error" class="btn btn-result btn-other">エラー</button>
@@ -448,6 +461,30 @@
                   </div>
                 </div>
               </section>
+
+              <!-- 投手成績 (新設) -->
+              <section class="control-section">
+                <h2>投手成績 (当日)</h2>
+                <div class="pitcher-stats-summary" style="font-size: 11px;">
+                  <div style="margin-bottom: 8px; padding: 5px; background: rgba(255,255,255,0.05); border-radius: 4px;">
+                    <div style="color: #ffd700; margin-bottom: 2px;">先攻投手</div>
+                    <div style="display: flex; gap: 10px;">
+                      <span>回: <input type="number" id="pitcher-innings-away" step="0.1" style="width: 35px; background: #222; color: #fff; border: 1px solid #444;"></span>
+                      <span>振: <input type="number" id="pitcher-k-away" style="width: 30px; background: #222; color: #fff; border: 1px solid #444;"></span>
+                      <span>失: <input type="number" id="pitcher-runs-away" style="width: 30px; background: #222; color: #fff; border: 1px solid #444;" readonly></span>
+                    </div>
+                  </div>
+                  <div style="padding: 5px; background: rgba(255,255,255,0.05); border-radius: 4px;">
+                    <div style="color: #ffd700; margin-bottom: 2px;">後攻投手</div>
+                    <div style="display: flex; gap: 10px;">
+                      <span>回: <input type="number" id="pitcher-innings-home" step="0.1" style="width: 35px; background: #222; color: #fff; border: 1px solid #444;"></span>
+                      <span>振: <input type="number" id="pitcher-k-home" style="width: 30px; background: #222; color: #fff; border: 1px solid #444;"></span>
+                      <span>失: <input type="number" id="pitcher-runs-home" style="width: 30px; background: #222; color: #fff; border: 1px solid #444;" readonly></span>
+                    </div>
+                  </div>
+                  <div style="margin-top: 5px; font-size: 9px; color: #888;">※失点は打席ログから自動計算されます</div>
+                </div>
+              </section>
               
               <!-- 打者操作 -->
               <section class="control-section">
@@ -471,6 +508,32 @@
                   🔄 全リセット
                 </button>
               </section>
+            </div>
+
+            <!-- 打席履歴詳細 (新設) -->
+            <div class="control-column log-column" style="flex: 2; min-width: 400px;">
+               <section class="control-section">
+                 <h2>打席ログ・詳細編集</h2>
+                 <div id="at-bat-log-container" class="log-table-wrapper" style="overflow-y: auto; max-height: 500px; background: rgba(0,0,0,0.2); border-radius: 4px; padding: 5px;">
+                   <table class="at-bat-log-table" style="width: 100%; border-collapse: collapse; font-size: 11px;">
+                     <thead>
+                       <tr style="border-bottom: 1px solid #444; color: #ffd700;">
+                         <th style="padding: 4px; text-align: left;">イニング</th>
+                         <th style="padding: 4px; text-align: left;">打者</th>
+                         <th style="padding: 4px; text-align: left;">投手</th>
+                         <th style="padding: 4px; text-align: left;">結果</th>
+                         <th style="padding: 4px; text-align: center;">打点</th>
+                         <th style="padding: 4px; text-align: center;">失点</th>
+                         <th style="padding: 4px; text-align: center;">自責</th>
+                         <th style="padding: 4px; text-align: center;">操作</th>
+                       </tr>
+                     </thead>
+                     <tbody id="at-bat-log-body">
+                       <!-- JSで生成 -->
+                     </tbody>
+                   </table>
+                 </div>
+               </section>
             </div>
           </div>
       </div>

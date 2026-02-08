@@ -84,7 +84,11 @@ export const DEFAULT_STATE = {
         away: []
     },
     // 得点ログ（例: "1回裏 佐藤輝明 HR①"）
-    scoreLogs: []
+    scoreLogs: [],
+    // 打席ごとの詳細ログ（編集可能）
+    atBatLog: [],
+    // 投手ごとの当日累計成績（投手名がキー）
+    pitcherStatsHistory: {}
 };
 
 // 打席結果のラベルマッピング

@@ -79,6 +79,16 @@ export function recordStrikeout(state) {
         state.pitcherStats[pitchingTeam] = { innings: 0, strikeouts: 0, walks: 0, runs: 0, pitchCount: 0, outs: 0, runsAtStart: 0 };
     }
     state.pitcherStats[pitchingTeam].strikeouts++;
+    
+    // 投手個別履歴にも記録
+    const pitcherName = state.pitcher ? state.pitcher[pitchingTeam] : '';
+    if (pitcherName) {
+        if (!state.pitcherStatsHistory) state.pitcherStatsHistory = {};
+        if (!state.pitcherStatsHistory[pitcherName]) {
+            state.pitcherStatsHistory[pitcherName] = { innings: 0, strikeouts: 0, walks: 0, runs: 0, earnedRuns: 0 };
+        }
+        state.pitcherStatsHistory[pitcherName].strikeouts++;
+    }
 }
 
 /**
@@ -91,6 +101,16 @@ export function recordWalk(state) {
         state.pitcherStats[pitchingTeam] = { innings: 0, strikeouts: 0, walks: 0, runs: 0, pitchCount: 0, outs: 0, runsAtStart: 0 };
     }
     state.pitcherStats[pitchingTeam].walks++;
+
+    // 投手個別履歴にも記録
+    const pitcherName = state.pitcher ? state.pitcher[pitchingTeam] : '';
+    if (pitcherName) {
+        if (!state.pitcherStatsHistory) state.pitcherStatsHistory = {};
+        if (!state.pitcherStatsHistory[pitcherName]) {
+            state.pitcherStatsHistory[pitcherName] = { innings: 0, strikeouts: 0, walks: 0, runs: 0, earnedRuns: 0 };
+        }
+        state.pitcherStatsHistory[pitcherName].walks++;
+    }
 }
 
 /**
@@ -104,6 +124,23 @@ export function recordOut(state) {
     }
     state.pitcherStats[pitchingTeam].outs++;
     updatePitcherStats(state, pitchingTeam);
+
+    // 投手個別履歴にも記録（イニング計算用のアウト数も個別管理が必要になるが、一旦IPと他項目を同期）
+    const pitcherName = state.pitcher ? state.pitcher[pitchingTeam] : '';
+    if (pitcherName) {
+        if (!state.pitcherStatsHistory) state.pitcherStatsHistory = {};
+        if (!state.pitcherStatsHistory[pitcherName]) {
+            state.pitcherStatsHistory[pitcherName] = { innings: 0, strikeouts: 0, walks: 0, runs: 0, earnedRuns: 0, outs: 0 };
+        }
+        if (state.pitcherStatsHistory[pitcherName].outs === undefined) state.pitcherStatsHistory[pitcherName].outs = 0;
+        state.pitcherStatsHistory[pitcherName].outs++;
+        
+        // イニング計算を個別投手にも適用
+        const outs = state.pitcherStatsHistory[pitcherName].outs;
+        const fullInnings = Math.floor(outs / 3);
+        const partialOuts = outs % 3;
+        state.pitcherStatsHistory[pitcherName].innings = fullInnings + (partialOuts * 0.1);
+    }
 }
 
 /**
@@ -136,9 +173,10 @@ export function updatePitcherStats(state, team) {
  * 打席結果を記録
  * @param {Object} state 
  * @param {string} resultCode 
+ * @param {boolean} hasLog ログ(得点記録)を伴うかどうか
  * @returns {Array} 発生したイベント（'CHANGE', 'SCORE', etc.）
  */
-export function recordAtBatResult(state, resultCode) {
+export function recordAtBatResult(state, resultCode, hasLog = false) {
     const team = state.inning.half === 'top' ? 'away' : 'home';
     const batterIndex = state.currentBatter[team];
     
@@ -152,7 +190,9 @@ export function recordAtBatResult(state, resultCode) {
         countBefore: {...state.count},
         scoreBefore: JSON.parse(JSON.stringify(state.scores)),
         outsBefore: state.count.out,
-        pitcherStatsBefore: JSON.parse(JSON.stringify(state.pitcherStats))
+        outsBefore: state.count.out,
+        pitcherStatsBefore: JSON.parse(JSON.stringify(state.pitcherStats)),
+        hasLog: hasLog // ログを生成したかどうか記録
     });
 
     // 個人成績に追加
@@ -292,6 +332,8 @@ export function recordAtBatResult(state, resultCode) {
     
     // 次の打者へ進める
     state.currentBatter[team] = (state.currentBatter[team] + 1) % 9;
+
+    return isChange;
 }
 
 /**
@@ -304,7 +346,7 @@ export function undoLastResult(state) {
     }
     
     const lastResult = state.resultHistory.pop();
-    const { team, batterIndex, result, runnersBefore, countBefore, scoreBefore, outsBefore, pitcherStatsBefore } = lastResult;
+    const { team, batterIndex, result, runnersBefore, countBefore, scoreBefore, outsBefore, pitcherStatsBefore, hasLog } = lastResult;
     
     // 現在の得点合計を取得（復元前）
     const currentTotalScore = state.scores[team].reduce((sum, s) => sum + (s || 0), 0);
@@ -333,8 +375,9 @@ export function undoLastResult(state) {
     // 復元後の得点合計を取得
     const restoredTotalScore = state.scores[team].reduce((sum, s) => sum + (s || 0), 0);
     
-    // 得点が減った場合、最新の得点ログを削除
-    if (currentTotalScore > restoredTotalScore && state.scoreLogs && state.scoreLogs.length > 0) {
+    // ログを伴うプレイかつ、得点が減った場合、最新の得点ログを削除
+    // (万が一手動調整で得点が増えていたとしても、hasLogがなければ削除しない)
+    if (hasLog && currentTotalScore > restoredTotalScore && state.scoreLogs && state.scoreLogs.length > 0) {
         state.scoreLogs.shift(); // 先頭（最新）を削除
     }
     

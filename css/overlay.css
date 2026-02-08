@@ -44,11 +44,11 @@
 
 /* Border color for teams */
 #score-log-team-away {
-    border-left: 3px solid #3498db;
+    border-left: 3px solid #ffd700;
 }
 
 #score-log-team-home {
-    border-left: 3px solid #e74c3c;
+    border-left: 3px solid #ffd700;
 }
 
 .score-log-item {
@@ -102,13 +102,13 @@
 
 /* アウェイチーム（左側） */
 .away-pitcher-panel {
-    border-left: 4px solid #3498db;
+    border-left: 4px solid #ffd700;
     transform: perspective(500px) rotateY(5deg);
 }
 
 /* ホームチーム（右側） */
 .home-pitcher-panel {
-    border-right: 4px solid #e74c3c;
+    border-right: 4px solid #ffd700;
     transform: perspective(500px) rotateY(-5deg);
     text-align: right;
 }
@@ -125,11 +125,11 @@
 }
 
 .away-pitcher-panel .pitcher-team-label {
-    color: #3498db;
+    color: #ffd700;
 }
 
 .home-pitcher-panel .pitcher-team-label {
-    color: #e74c3c;
+    color: #ffd700;
 }
 
 .pitcher-list {
@@ -226,15 +226,15 @@
 
 /* 現在マウンドにいる投手を強調 */
 .pitcher-entry.on-mound {
-    background: linear-gradient(90deg, rgba(231, 76, 60, 0.25) 0%, transparent 100%);
-    border-left: 3px solid #e74c3c;
-    box-shadow: 0 0 15px rgba(231, 76, 60, 0.3);
+    background: linear-gradient(90deg, rgba(255, 215, 0, 0.25) 0%, transparent 100%);
+    border-left: 3px solid #ffd700;
+    box-shadow: 0 0 15px rgba(255, 215, 0, 0.3);
 }
 
 .home-pitcher-panel .pitcher-entry.on-mound {
-    background: linear-gradient(-90deg, rgba(231, 76, 60, 0.25) 0%, transparent 100%);
+    background: linear-gradient(-90deg, rgba(255, 215, 0, 0.25) 0%, transparent 100%);
     border-left: none;
-    border-right: 3px solid #e74c3c;
+    border-right: 3px solid #ffd700;
 }
 
 .pitcher-entry.on-mound .pitcher-name {
@@ -244,7 +244,7 @@
 
 .pitcher-entry.on-mound .pitcher-role::after {
     content: " ●";
-    color: #e74c3c;
+    color: #ffd700;
     animation: pulse 1.5s infinite;
 }
 
@@ -294,17 +294,17 @@
 }
 
 .relief-pitcher-item.on-mound {
-    background: linear-gradient(90deg, rgba(231, 76, 60, 0.25) 0%, transparent 100%);
-    border-left: 3px solid #e74c3c;
+    background: linear-gradient(90deg, rgba(255, 215, 0, 0.25) 0%, transparent 100%);
+    border-left: 3px solid #ffd700;
     color: #fff;
     font-size: 16px;
-    box-shadow: 0 0 10px rgba(231, 76, 60, 0.2);
+    box-shadow: 0 0 10px rgba(255, 215, 0, 0.2);
 }
 
 .home-pitcher-panel .relief-pitcher-item.on-mound {
-    background: linear-gradient(-90deg, rgba(231, 76, 60, 0.25) 0%, transparent 100%);
+    background: linear-gradient(-90deg, rgba(255, 215, 0, 0.25) 0%, transparent 100%);
     border-left: none;
-    border-right: 3px solid #e74c3c;
+    border-right: 3px solid #ffd700;
 }
 
 

@@ -51,8 +51,8 @@ function resizeWindowForTab(tabName) {
             height = 800;
             break;
         case 'control':
-            width = 500;
-            height = 650;
+            width = 1200;
+            height = 850;
             break;
         default:
             width = 800;

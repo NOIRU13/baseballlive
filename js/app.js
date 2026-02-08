@@ -12,6 +12,7 @@ let gameId = 1; // Default Game ID for now
 let allPlayers = []; // 全選手データ
 let allTeams = []; // 全チームデータ
 let teamSelections = {away: null, home: null}; // 選択されたチームID
+let pendingTimelyRBI = 0; // タイムリーボタンの状態 (0, 1, 2, 3)
 
 document.addEventListener('DOMContentLoaded', async () => {
     // ページモード判定
@@ -121,6 +122,29 @@ function setupStorageSync() {
 
 // ==================== イベントリスナー ====================
 function setupEventListeners() {
+    // タイムリーボタン (1, 2, 3)
+    [1, 2, 3].forEach(val => {
+        const btn = document.getElementById(`btn-timely-${val}`);
+        if (btn) {
+            btn.addEventListener('click', () => {
+                if (pendingTimelyRBI === val) {
+                    // 解除
+                    pendingTimelyRBI = 0;
+                    btn.classList.remove('active');
+                } else {
+                    // 設定
+                    pendingTimelyRBI = val;
+                    // 他を解除
+                    [1, 2, 3].forEach(v => {
+                        const b = document.getElementById(`btn-timely-${v}`);
+                        if (b) b.classList.remove('active');
+                    });
+                    btn.classList.add('active');
+                }
+            });
+        }
+    });
+
     function addListener(id, event, handler) {
         const el = document.getElementById(id);
         if (el) el.addEventListener(event, handler);
@@ -233,8 +257,22 @@ function setupEventListeners() {
                     if (prevPitcher && prevPitcher !== pitcherEl.value) {
                         savePitcherStatsToDB(team, prevPitcher);
                         hasPitcherChange = true;
-                        // Reset is done on newState below
-                        resetPitcherTodayStats(team, newState); 
+                        
+                        // 新しい投手のデータを履歴から復元、またはリセット
+                        if (pitcherEl.value && newState.pitcherStatsHistory && newState.pitcherStatsHistory[pitcherEl.value]) {
+                            const hist = newState.pitcherStatsHistory[pitcherEl.value];
+                            newState.pitcherStats[team] = {
+                                innings: hist.innings || 0,
+                                strikeouts: hist.strikeouts || 0,
+                                walks: hist.walks || 0,
+                                runs: hist.runs || 0,
+                                outs: hist.outs || 0,
+                                pitchCount: hist.pitchCount || 0,
+                                runsAtStart: 0
+                            };
+                        } else {
+                            resetPitcherTodayStats(team, newState); 
+                        }
                     }
                 }
             }
@@ -296,11 +334,11 @@ function setupEventListeners() {
         if (State.state.count.strike >= 3) {
             GameLogic.recordStrikeout(State.state);
             const isChange = GameLogic.addOut(State.state);
-            if (!isChange) nextBatter(); 
-            // チェンジの場合は nextBatter() しない（攻撃側が変わるので、そのイニングの先頭打者になる。
-            // advanceInning内で currentBatter のリセットはしていないので、
-            // 前のイニングの続きからになるはず（野球のルール）。
-            // なので、チェンジ時は単に currentBatter を進めなければよい。
+            if (isChange) {
+                Sync.broadcastResultEvent('CHANGE', State.isAdminMode, State.state);
+            } else {
+                nextBatter();
+            }
         }
         updateAndSave();
     });
@@ -312,7 +350,10 @@ function setupEventListeners() {
     
     // アウト
     addListener('btn-out', 'click', () => {
-        GameLogic.addOut(State.state);
+        const isChange = GameLogic.addOut(State.state);
+        if (isChange) {
+            Sync.broadcastResultEvent('CHANGE', State.isAdminMode, State.state);
+        }
         updateAndSave();
     });
     
@@ -432,12 +473,21 @@ function setupEventListeners() {
     // 打席結果ボタン
     document.querySelectorAll('[data-result]').forEach(btn => {
         btn.addEventListener('click', async () => {
-            const result = btn.dataset.result;
+            let result = btn.dataset.result;
             
             // 現在の打者・投手・イニング情報を取得
             const currentHalf = State.state.inning.half;
             const currentTeam = currentHalf === 'top' ? 'away' : 'home';
             const pitcherTeam = currentHalf === 'top' ? 'home' : 'away';
+
+            // タイムリー指定があれば適用（単打・二塁打・三塁打・エラーのみ）
+            let forcedRBI = 0;
+            if (pendingTimelyRBI > 0 && ['single', 'double', 'triple', 'error'].includes(result)) {
+                forcedRBI = pendingTimelyRBI;
+                // リセット
+                pendingTimelyRBI = 0;
+                document.querySelectorAll('.btn-timely').forEach(b => b.classList.remove('active'));
+            }
             
             const batterIndex = State.state.currentBatter[currentTeam];
             const batterName = State.state.lineup[currentTeam][batterIndex];
@@ -457,6 +507,9 @@ function setupEventListeners() {
                 if (State.state.runners.second) runners++;
                 if (State.state.runners.third) runners++;
                 rbi = runners + 1;
+            } else if (forcedRBI > 0) {
+                // タイムリー指定の場合はその点数がRBI
+                rbi = forcedRBI;
             } else {
                 // そうでない場合は、打席開始時からの得点増分
                 const startScore = State.state.scoreAtStartOfAtBat !== undefined ? State.state.scoreAtStartOfAtBat : currentTotalScore;
@@ -498,8 +551,31 @@ function setupEventListeners() {
                 console.warn('Batter ID not found for:', batterName);
             }
 
-            GameLogic.recordAtBatResult(State.state, result);
-            Sync.broadcastResultEvent(result, State.isAdminMode, State.state);
+            // 打席結果を記録 (hasLogフラグを渡す)
+            const isChange = GameLogic.recordAtBatResult(State.state, result, rbi > 0);
+
+            if (isChange) {
+                Sync.broadcastResultEvent('CHANGE', State.isAdminMode, State.state);
+            } else {
+                Sync.broadcastResultEvent(result, State.isAdminMode, State.state);
+            }
+
+            // タイムリー指定時のスコア加算（手動加算が必要）
+            if (forcedRBI > 0) {
+                const inningIndex = State.state.inning.number - 1;
+                
+                // 得点加算
+                if (typeof State.state.scores[currentTeam][inningIndex] !== 'number') {
+                    State.state.scores[currentTeam][inningIndex] = 0;
+                }
+                State.state.scores[currentTeam][inningIndex] += forcedRBI;
+                
+                // エラーの場合は守備側の失策数加算
+                if (result === 'error' && State.state.stats[pitcherTeam]) {
+                     if (!State.state.stats[pitcherTeam].e) State.state.stats[pitcherTeam].e = 0;
+                     State.state.stats[pitcherTeam].e++;
+                }
+            }
 
             // 次の打者のためにスコアをリセット記録（HRの場合はrecordAtBatResultでスコアが増えるので再取得）
             // 注意: recordAtBatResult内で batterIndex が進んでいるため、
@@ -525,6 +601,22 @@ function setupEventListeners() {
                 // 最大履歴数を制限（例：最新20件）
                 if (State.state.scoreLogs.length > 20) State.state.scoreLogs.pop();
             }
+
+            // --- 打席ログ詳細記録 (atBatLog) ---
+            if (!State.state.atBatLog) State.state.atBatLog = [];
+            State.state.atBatLog.unshift({
+                id: Date.now().toString(),
+                inning: State.state.inning.number,
+                half: currentHalf,
+                team: currentTeam,
+                batterName: batterName,
+                batterIndex: batterIndex,
+                pitcherName: pitcherName,
+                result: result,
+                rbi: rbi,
+                runs: rbi, // 初期値は打点と同じ
+                earnedRuns: rbi // 初期値は打点と同じ
+            });
             
             updateAndSave();
         });
@@ -551,9 +643,9 @@ function getCircledNumber(n) {
 
 function getShortResultName(type) {
     const map = {
-        'single': '安', 'double': '2B', 'triple': '3B', 'homerun': 'HR',
-        'walk': '四球', 'hbp': '死球', 'error': '失策',
-        'strikeout': '三振', 'groundout': 'ゴロ', 'flyout': '飛', 'lineout': '直',
+        'single': '単打', 'double': '二塁打', 'triple': '三塁打', 'homerun': '本塁打',
+        'walk': '四球', 'hbp': '死球', 'error': 'エラー',
+        'strikeout': '三振', 'groundout': 'ゴロ', 'flyout': 'フライ', 'lineout': 'ライナー',
         'sacrifice': '犠打', 'fc': '野選', 'dp': '併殺'
     };
     return map[type] || type;
@@ -600,10 +692,25 @@ function handlePitcherSubstitution(team) {
     // Stateに反映
     State.state.pitcher[team] = newPitcher;
     
-    // 旧投手の成績をDB保存
+    // 投手交代時のデータ移行：履歴があれば復元、なければリセット
+    if (newPitcher && State.state.pitcherStatsHistory && State.state.pitcherStatsHistory[newPitcher]) {
+        const hist = State.state.pitcherStatsHistory[newPitcher];
+        State.state.pitcherStats[team] = {
+            innings: hist.innings || 0,
+            strikeouts: hist.strikeouts || 0,
+            walks: hist.walks || 0,
+            runs: hist.runs || 0,
+            outs: hist.outs || 0,
+            pitchCount: hist.pitchCount || 0,
+            runsAtStart: 0 // 履歴からの復元時は絶対値を使用するため
+        };
+    } else {
+        resetPitcherTodayStats(team, State.state);
+    }
+
+    // 旧投手の成績をDB保存（オプション）
     if (oldPitcher && oldPitcher !== newPitcher) {
         savePitcherStatsToDB(team, oldPitcher);
-        resetPitcherTodayStats(team, State.state);
     }
     
     // アニメーション用の変更情報を作成
@@ -723,10 +830,23 @@ function convertResultToDbType(type) {
     
     pitcherInputs.forEach(input => {
         addListener(input.id, 'input', (e) => {
+            const pitcherName = State.state.pitcher ? State.state.pitcher[input.team] : '';
+            if (!pitcherName) return;
+
+            if (!State.state.pitcherStatsHistory) State.state.pitcherStatsHistory = {};
+            if (!State.state.pitcherStatsHistory[pitcherName]) {
+                State.state.pitcherStatsHistory[pitcherName] = { innings: 0, strikeouts: 0, runs: 0, earnedRuns: 0 };
+            }
+            
+            const value = input.parse(e.target.value) || 0;
+            State.state.pitcherStatsHistory[pitcherName][input.prop] = value;
+            
+            // 下換性のために既存のpitcherStatsも更新（必要に応じて）
             if (!State.state.pitcherStats) {
                 State.state.pitcherStats = JSON.parse(JSON.stringify(Constants.DEFAULT_STATE.pitcherStats));
             }
-            State.state.pitcherStats[input.team][input.prop] = input.parse(e.target.value) || 0;
+            State.state.pitcherStats[input.team][input.prop] = value;
+
             State.saveState();
         });
     });
@@ -739,6 +859,7 @@ function handleLineupInput(e) {
 
 function updateAndSave() {
     Render.updateDisplay(State.state, State.isAdminMode, State.isDisplayMode);
+    renderAtBatLog();
     State.saveState();
 }
 
@@ -804,6 +925,9 @@ function resetPitcherTodayStats(team, targetState = null) {
     const opposingTeam = team === 'home' ? 'away' : 'home';
     const currentTotalRuns = getTotalScore(s, opposingTeam);
 
+    const pitcherName = s.pitcher ? s.pitcher[team] : '';
+
+    // 新しい投手のための初期値
     s.pitcherStats[team] = { 
         innings: 0, 
         strikeouts: 0, 
@@ -811,8 +935,16 @@ function resetPitcherTodayStats(team, targetState = null) {
         runs: 0, 
         pitchCount: 0, 
         outs: 0,
-        runsAtStart: currentTotalRuns // 交代時点の失点を記録
+        runsAtStart: currentTotalRuns // 交代時点の失点をベースラインにする
     };
+
+    // 履歴オブジェクトに初期エントリを作成（未存在の場合）
+    if (pitcherName) {
+        if (!s.pitcherStatsHistory) s.pitcherStatsHistory = {};
+        if (!s.pitcherStatsHistory[pitcherName]) {
+            s.pitcherStatsHistory[pitcherName] = { innings: 0, strikeouts: 0, walks: 0, runs: 0, earnedRuns: 0, outs: 0 };
+        }
+    }
 }
 
 // Global variables for master data and selections (Moved to top)
@@ -1058,4 +1190,160 @@ function loadLineupTemplate(side) {
     alert(`「${teamName}」のスタメンテンプレートを読み込みました。\n保存ボタンを押すと反映されます。`);
     
     console.log('Template loaded to form (not saved):', storageKey, template);
+}
+
+/**
+ * 打席ログテーブルをレンダリング
+ */
+function renderAtBatLog() {
+    const tableBody = document.getElementById('at-bat-log-body');
+    if (!tableBody) return;
+
+    const log = State.state.atBatLog || [];
+    tableBody.innerHTML = '';
+
+    log.forEach((entry, idx) => {
+        const tr = document.createElement('tr');
+        tr.style.borderBottom = '1px solid #333';
+        const halfStr = entry.half === 'top' ? '表' : '裏';
+        
+        tr.innerHTML = `
+            <td style="padding: 4px;">${entry.inning}${halfStr}</td>
+            <td style="padding: 4px;">${entry.batterName}</td>
+            <td style="padding: 4px;">
+                <input type="text" class="log-edit-pitcher" data-id="${entry.id}" value="${entry.pitcherName || ''}" style="width: 60px; font-size: 10px; background: #222; color: #fff; border: 1px solid #444;">
+            </td>
+            <td style="padding: 4px;">
+                <select class="log-edit-result" data-id="${entry.id}" style="font-size: 10px; background: #222; color: #fff; border: 1px solid #444;">
+                    ${Object.entries(Constants.RESULT_LABELS).map(([code, label]) => 
+                        `<option value="${code}" ${entry.result === code ? 'selected' : ''}>${label}</option>`
+                    ).join('')}
+                </select>
+            </td>
+            <td style="padding: 4px; text-align: center;">
+                <input type="number" class="log-edit-rbi" data-id="${entry.id}" value="${entry.rbi}" style="width: 30px; font-size: 10px; background: #222; color: #fff; border: 1px solid #444; text-align: center;">
+            </td>
+            <td style="padding: 4px; text-align: center;">
+                <input type="number" class="log-edit-runs" data-id="${entry.id}" value="${entry.runs || 0}" style="width: 30px; font-size: 10px; background: #222; color: #fff; border: 1px solid #444; text-align: center;">
+            </td>
+            <td style="padding: 4px; text-align: center;">
+                <input type="number" class="log-edit-er" data-id="${entry.id}" value="${entry.earnedRuns || 0}" style="width: 30px; font-size: 10px; background: #222; color: #fff; border: 1px solid #444; text-align: center;">
+            </td>
+            <td style="padding: 4px; text-align: center;">
+                <button class="btn-log-delete" data-id="${entry.id}" style="padding: 2px 4px; font-size: 9px; background: #e74c3c; color: #fff; border: none; border-radius: 2px; cursor: pointer;">削除</button>
+            </td>
+        `;
+        tableBody.appendChild(tr);
+    });
+
+    // イベント設定
+    tableBody.querySelectorAll('input, select').forEach(el => {
+        el.addEventListener('change', (e) => handleLogEdit(e));
+    });
+    tableBody.querySelectorAll('.btn-log-delete').forEach(btn => {
+        btn.addEventListener('click', (e) => handleLogDelete(e));
+    });
+}
+
+/**
+ * ログの編集ハンドル
+ */
+function handleLogEdit(e) {
+    const id = e.target.dataset.id;
+    const entry = State.state.atBatLog.find(l => l.id === id);
+    if (!entry) return;
+
+    if (e.target.classList.contains('log-edit-result')) {
+        entry.result = e.target.value;
+    } else if (e.target.classList.contains('log-edit-pitcher')) {
+        entry.pitcherName = e.target.value;
+    } else if (e.target.classList.contains('log-edit-rbi')) {
+        entry.rbi = parseInt(e.target.value) || 0;
+    } else if (e.target.classList.contains('log-edit-runs')) {
+        entry.runs = parseInt(e.target.value) || 0;
+    } else if (e.target.classList.contains('log-edit-er')) {
+        entry.earnedRuns = parseInt(e.target.value) || 0;
+    }
+
+    recalculateStatsFromLog();
+}
+
+/**
+ * ログの削除ハンドル
+ */
+function handleLogDelete(e) {
+    if (!confirm('この打席データを削除しますか？')) return;
+    const id = e.target.dataset.id;
+    State.state.atBatLog = State.state.atBatLog.filter(l => l.id !== id);
+    recalculateStatsFromLog();
+}
+
+/**
+ * 打席ログから全ての累計データを再計算
+ */
+function recalculateStatsFromLog() {
+    console.log('Recalculating stats from log...');
+    
+    // 1. 各種累計データをリセット
+    State.state.todayRBI = JSON.parse(JSON.stringify(Constants.DEFAULT_STATE.todayRBI));
+    State.state.atBatResults = JSON.parse(JSON.stringify(Constants.DEFAULT_STATE.atBatResults));
+    
+    // 投手ごとの集計用オブジェクト (投手名 -> { runs, earnedRuns })
+    const pitcherPerformance = {};
+
+    // 2. ログを逆順（古い順）に処理
+    const log = [...(State.state.atBatLog || [])].reverse();
+    
+    log.forEach(entry => {
+        const { team, batterIndex, result, rbi, runs, earnedRuns, pitcherName } = entry;
+        
+        // 打点加算
+        if (State.state.todayRBI[team][batterIndex] === undefined) State.state.todayRBI[team][batterIndex] = 0;
+        State.state.todayRBI[team][batterIndex] += (rbi || 0);
+
+        // 打席結果履歴加算
+        State.state.atBatResults[team][batterIndex].push(result);
+
+        // 投手ごとの成績集計
+        if (pitcherName) {
+            if (!pitcherPerformance[pitcherName]) {
+                pitcherPerformance[pitcherName] = { runs: 0, earnedRuns: 0 };
+            }
+            pitcherPerformance[pitcherName].runs += (runs || 0);
+            pitcherPerformance[pitcherName].earnedRuns += (earnedRuns || 0);
+        }
+    });
+
+    // 3. 現在登板中の投手の成績をstate.pitcherStatsに反映
+    ['away', 'home'].forEach(team => {
+        const currentPitcher = State.state.pitcher ? State.state.pitcher[team] : '';
+        if (currentPitcher && pitcherPerformance[currentPitcher]) {
+            if (!State.state.pitcherStats[team]) {
+                State.state.pitcherStats[team] = JSON.parse(JSON.stringify(Constants.DEFAULT_STATE.pitcherStats[team]));
+            }
+            // ログから集計された最新の数値を反映
+            State.state.pitcherStats[team].runsFromLog = pitcherPerformance[currentPitcher].runs;
+            State.state.pitcherStats[team].earnedRunsFromLog = pitcherPerformance[currentPitcher].earnedRuns;
+        } else if (State.state.pitcherStats[team]) {
+            // ログに現在投手のデータがなければ0
+            State.state.pitcherStats[team].runsFromLog = 0;
+            State.state.pitcherStats[team].earnedRunsFromLog = 0;
+        }
+    });
+
+    // 4. 全投手の集計結果を保持し、投手の履歴データにマージ
+    State.state.allPitcherPerformance = pitcherPerformance;
+    
+    if (!State.state.pitcherStatsHistory) State.state.pitcherStatsHistory = {};
+    
+    // ログから計算された失点・自責点を履歴データに反映
+    for (const [name, performance] of Object.entries(pitcherPerformance)) {
+        if (!State.state.pitcherStatsHistory[name]) {
+            State.state.pitcherStatsHistory[name] = { innings: 0, strikeouts: 0, runs: 0, earnedRuns: 0 };
+        }
+        State.state.pitcherStatsHistory[name].runs = performance.runs;
+        State.state.pitcherStatsHistory[name].earnedRuns = performance.earnedRuns;
+    }
+
+    updateAndSave();
 }
