@@ -161,6 +161,7 @@
       <div class="tabs">
         <button class="tab-btn active" onclick="showTab('teams')">チーム管理</button>
         <button class="tab-btn" onclick="showTab('players')">選手管理</button>
+        <button class="tab-btn" onclick="showTab('stats')">成績管理</button>
       </div>
 
       <!-- チーム管理タブ -->
@@ -230,14 +231,8 @@
                   <select id="player-position">
                       <option value="P">P (投手)</option>
                       <option value="C">C (捕手)</option>
-                      <option value="1B">1B (一塁手)</option>
-                      <option value="2B">2B (二塁手)</option>
-                      <option value="3B">3B (三塁手)</option>
-                      <option value="SS">SS (遊撃手)</option>
-                      <option value="LF">LF (左翼手)</option>
-                      <option value="CF">CF (中堅手)</option>
-                      <option value="RF">RF (右翼手)</option>
-                      <option value="DH">DH (指名打者)</option>
+                      <option value="IF">IF (内野手)</option>
+                      <option value="OF">OF (外野手)</option>
                   </select>
                 </div>
                 <div class="form-group flex-1">
@@ -276,6 +271,53 @@
           </table>
         </div>
       </div>
+
+      <!-- 成績管理タブ -->
+      <div id="stats-tab" class="tab-content">
+        <div class="section">
+            <h2>CSVインポート (Python Backend)</h2>
+            <div class="form-group">
+                <label>データの種類</label>
+                <select id="import-type">
+                    <option value="batting">打撃成績</option>
+                    <option value="pitching">投手成績</option>
+                    <option value="players">選手情報</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>CSVファイルを選択</label>
+                <input type="file" id="csv-file" accept=".csv">
+            </div>
+            <button onclick="uploadCsv()" class="primary-btn">インポート実行</button>
+            <div id="upload-status" style="margin-top: 10px;"></div>
+        </div>
+
+        <div class="section">
+            <h2>CSVエクスポート</h2>
+            <div class="flex-row">
+                <button onclick="exportCsv('batting')" class="primary-btn" style="background: #3498db;">打撃成績ダウンロード</button>
+                <button onclick="exportCsv('pitching')" class="primary-btn" style="background: #9b59b6;">投手成績ダウンロード</button>
+            </div>
+        </div>
+
+        <div class="section">
+             <h2>成績データ管理</h2>
+             <div class="tabs" style="margin-bottom: 10px;">
+                <button class="tab-btn active" id="btn-stats-batting" onclick="loadStats('batting')">打撃成績</button>
+                <button class="tab-btn" id="btn-stats-pitching" onclick="loadStats('pitching')">投手成績</button>
+            </div>
+             <div style="overflow-x: auto;">
+                <table id="stats-table">
+                    <thead>
+                        <!-- JSで生成 -->
+                    </thead>
+                    <tbody>
+                        <!-- JSで生成 -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+      </div>
     </div>
 
     <script src="js/admin-db.js"></script>
@@ -285,10 +327,17 @@
             document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
             
             document.getElementById(tabName + '-tab').classList.add('active');
-            // ボタンのアクティブ化ロジックは簡易的に（順番依存でなくクラス検索で）
-            const btns = document.querySelectorAll('.tab-btn');
+            // ボタンのアクティブ化ロジックは簡易的に（クラス検索で）
+            const btns = document.querySelectorAll('.tabs > .tab-btn');
+            // 親の .tabs 直下のボタンのみ対象にする修正
+            
+            // タブボタンの対応付けが少しハードコード気味だが、とりあえずインデックスで
             if(tabName === 'teams') btns[0].classList.add('active');
             if(tabName === 'players') btns[1].classList.add('active');
+            if(tabName === 'stats') {
+                btns[2].classList.add('active');
+                loadStats('batting'); // デフォルトで打撃成績表示
+            }
         }
     </script>
   </body>

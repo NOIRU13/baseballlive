@@ -232,3 +232,150 @@ window.deletePlayer = async (id) => {
         alert('エラーが発生しました');
     }
 };
+// ==================== 成績管理 ====================
+
+const STATS_API_BASE = 'http://localhost:5000/api';
+
+// CSVアップロード
+async function uploadCsv() {
+    const fileInput = document.getElementById('csv-file');
+    const typeSelect = document.getElementById('import-type');
+    const statusDiv = document.getElementById('upload-status');
+
+    if (!fileInput.files[0]) {
+        alert('ファイルを選択してください');
+        return;
+    }
+
+    const formData = new FormData();
+    formData.append('file', fileInput.files[0]);
+    formData.append('type', typeSelect.value);
+
+    statusDiv.textContent = 'アップロード中...';
+    statusDiv.style.color = '#fff';
+
+    try {
+        const response = await fetch(`${STATS_API_BASE}/import/csv`, {
+            method: 'POST',
+            body: formData
+        });
+
+        const data = await response.json();
+        
+        if (response.ok) {
+            statusDiv.textContent = `成功: ${data.message}`;
+            statusDiv.style.color = '#2ecc71';
+            // 該当する成績を表示更新
+            if (typeSelect.value === 'batting' || typeSelect.value === 'pitching') {
+                loadStats(typeSelect.value);
+            }
+        } else {
+            statusDiv.textContent = `エラー: ${data.error}`;
+            statusDiv.style.color = '#e74c3c';
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        statusDiv.textContent = `通信エラー: ${error.message}`;
+        statusDiv.style.color = '#e74c3c';
+    }
+}
+
+// CSVエクスポート
+function exportCsv(type) {
+    if (!type) {
+        // ボタンから呼び出された場合などに対応
+        // 現在のタブや選択状態から判断するロジックを入れてもいいが、
+        // 今回はとりあえず引数必須とする
+        return;
+    }
+    window.location.href = `${STATS_API_BASE}/export/csv?type=${type}`;
+}
+
+// 成績読み込み
+async function loadStats(type) {
+    // タブのボタンのアクティブ状態更新
+    document.getElementById('btn-stats-batting').classList.remove('active');
+    document.getElementById('btn-stats-pitching').classList.remove('active');
+    document.getElementById(`btn-stats-${type}`).classList.add('active');
+
+    try {
+        const res = await fetch(`${STATS_API_BASE}/stats/${type}`);
+        const stats = await res.json();
+        
+        renderStatsTable(stats, type);
+    } catch (err) {
+        console.error('成績読み込みエラー:', err);
+    }
+}
+
+// 成績テーブル描画
+function renderStatsTable(stats, type) {
+    const table = document.getElementById('stats-table');
+    const thead = table.querySelector('thead');
+    const tbody = table.querySelector('tbody');
+    
+    thead.innerHTML = '';
+    tbody.innerHTML = '';
+    
+    if (stats.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="10">データがありません</td></tr>';
+        return;
+    }
+    
+    // ヘッダー生成
+    const trHead = document.createElement('tr');
+    
+    // 共通カラム
+    const headers = [
+        { key: 'season', label: '年度' },
+        { key: 'team_name', label: 'チーム' },
+        { key: 'player_name', label: '選手名' }
+    ];
+    
+    if (type === 'batting') {
+        headers.push(
+            { key: 'batting_average', label: '打率' },
+            { key: 'games', label: '試合' },
+            { key: 'at_bats', label: '打数' },
+            { key: 'hits', label: '安打' },
+            { key: 'home_runs', label: '本塁打' },
+            { key: 'rbis', label: '打点' },
+            { key: 'ops', label: 'OPS' }
+        );
+    } else {
+        headers.push(
+            { key: 'era', label: '防御率' },
+            { key: 'games', label: '登板' },
+            { key: 'wins', label: '勝利' },
+            { key: 'losses', label: '敗北' },
+            { key: 'saves', label: 'セーブ' },
+            { key: 'innings_pitched', label: '回' },
+            { key: 'strikeouts', label: '奪三振' }
+        );
+    }
+    
+    headers.forEach(h => {
+        const th = document.createElement('th');
+        th.textContent = h.label;
+        trHead.appendChild(th);
+    });
+    thead.appendChild(trHead);
+    
+    // ボディ生成
+    stats.forEach(row => {
+        const tr = document.createElement('tr');
+        headers.forEach(h => {
+            const td = document.createElement('td');
+            let val = row[h.key];
+            if (val === null) val = '-';
+            td.textContent = val;
+            tr.appendChild(td);
+        });
+        tbody.appendChild(tr);
+    });
+}
+
+// グローバルスコープに公開
+window.uploadCsv = uploadCsv;
+window.exportCsv = exportCsv;
+window.loadStats = loadStats;

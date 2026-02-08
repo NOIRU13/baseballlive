@@ -39,11 +39,13 @@ CREATE TABLE IF NOT EXISTS players (
     id INT AUTO_INCREMENT PRIMARY KEY,
     team_id INT NOT NULL,
     name VARCHAR(50) NOT NULL COMMENT '選手名',
-    number INT COMMENT '背番号',
+    number VARCHAR(10) COMMENT '背番号',
     position VARCHAR(10) COMMENT '守備位置',
     hand VARCHAR(10) COMMENT '投打 (例: 右投左打)',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (team_id) REFERENCES teams(id) ON DELETE CASCADE
+    FOREIGN KEY (team_id) REFERENCES teams(id) ON DELETE CASCADE,
+    UNIQUE KEY unique_team_number (team_id, number),
+    UNIQUE KEY unique_team_name (team_id, name)
 );
 
 -- 試合テーブル
@@ -55,8 +57,8 @@ CREATE TABLE IF NOT EXISTS games (
     stadium VARCHAR(100),
     status VARCHAR(20) DEFAULT 'scheduled' COMMENT 'scheduled, live, finished',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (home_team_id) REFERENCES teams(id),
-    FOREIGN KEY (away_team_id) REFERENCES teams(id)
+    FOREIGN KEY (home_team_id) REFERENCES teams(id) ON DELETE CASCADE,
+    FOREIGN KEY (away_team_id) REFERENCES teams(id) ON DELETE CASCADE
 );
 
 -- 打席結果テーブル（詳細ログ）
@@ -78,7 +80,7 @@ CREATE TABLE IF NOT EXISTS at_bats (
 );
 
 -- 投手成績サマリー（イニングごとまたは試合ごとの集計）
-CREATE TABLE IF NOT EXISTS pitching_stats (
+CREATE TABLE IF NOT EXISTS game_pitching_logs (
     id INT AUTO_INCREMENT PRIMARY KEY,
     game_id INT NOT NULL,
     pitcher_id INT NOT NULL,
@@ -92,6 +94,42 @@ CREATE TABLE IF NOT EXISTS pitching_stats (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (game_id) REFERENCES games(id) ON DELETE CASCADE,
     FOREIGN KEY (pitcher_id) REFERENCES players(id)
+);
+
+-- 通算打撃成績
+CREATE TABLE IF NOT EXISTS batting_stats (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    player_id INT NOT NULL,
+    season INT NOT NULL,
+    batting_average DECIMAL(5, 4) DEFAULT NULL,
+    games INT DEFAULT NULL,
+    at_bats INT DEFAULT NULL,
+    hits INT DEFAULT NULL,
+    home_runs INT DEFAULT NULL,
+    rbis INT DEFAULT NULL,
+    ops DECIMAL(5, 4) DEFAULT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    UNIQUE KEY unique_player_season (player_id, season),
+    FOREIGN KEY (player_id) REFERENCES players(id) ON DELETE CASCADE
+);
+
+-- 通算投手成績
+CREATE TABLE IF NOT EXISTS pitching_stats (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    player_id INT NOT NULL,
+    season INT NOT NULL,
+    era DECIMAL(5, 2) DEFAULT NULL,
+    games INT DEFAULT NULL,
+    wins INT DEFAULT NULL,
+    losses INT DEFAULT NULL,
+    saves INT DEFAULT NULL,
+    innings_pitched DECIMAL(5, 1) DEFAULT NULL,
+    strikeouts INT DEFAULT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    UNIQUE KEY unique_player_season (player_id, season),
+    FOREIGN KEY (player_id) REFERENCES players(id) ON DELETE CASCADE
 );
 
 -- サンプルデータ投入

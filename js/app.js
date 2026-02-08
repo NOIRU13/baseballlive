@@ -387,10 +387,7 @@ function nextBatter() {
     State.state.currentBatter[team] = (State.state.currentBatter[team] + 1) % 9;
 }
 
-// Global variables for master data and selections
-let allPlayers = [];
-let allTeams = [];
-let teamSelections = { away: null, home: null };
+// Global variables for master data and selections (Moved to top)
 
 /**
  * マスタデータをロードしてキャッシュする

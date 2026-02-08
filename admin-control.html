@@ -13,7 +13,7 @@
         background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
         font-family: 'Noto Sans JP', sans-serif;
         overflow-y: auto;
-        max-width: 600px;
+        max-width: 350px;
         max-height: 600px;
       }
       
@@ -36,11 +36,10 @@
         text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
       }
       
-      /* メインレイアウト: 左右2カラム */
+      /* メインレイアウト */
       .main-layout {
-        display: grid;
-        grid-template-columns: 280px 1fr;
-        gap: 8px;
+        display: flex;
+        justify-content: center;
         flex: 1;
       }
       
@@ -346,28 +345,10 @@
         <a href="admin-db.html" target="_blank" class="btn btn-link">🗄️ DB管理</a>
       </section>
       
-      <!-- メインレイアウト: 左右2カラム -->
-      <div class="main-layout">
-        <!-- 左カラム: 操作系 -->
-        <div class="left-column">
-          <!-- チーム選択 -->
-          <section class="control-section">
-            <h2>チーム選択</h2>
-            <div class="team-inputs">
-              <div class="input-group">
-                <label for="away-team-select">先攻</label>
-                <select id="away-team-select" class="team-select">
-                  <option value="">チームを選択...</option>
-                </select>
-              </div>
-              <div class="input-group">
-                <label for="home-team-select">後攻</label>
-                <select id="home-team-select" class="team-select">
-                  <option value="">チームを選択...</option>
-                </select>
-              </div>
-            </div>
-          </section>
+      <!-- メインレイアウト: 1カラム中央配置 -->
+      <div class="main-layout" style="display: flex; justify-content: center;">
+        <!-- 操作系 -->
+        <div class="control-column" style="width: 100%; max-width: 320px;">
           
           <!-- イニング操作 -->
           <section class="control-section">
@@ -438,25 +419,6 @@
             <button id="btn-reset-game" class="btn btn-full btn-danger">
               🔄 全リセット
             </button>
-          </section>
-        </div>
-        
-        <!-- 右カラム: 選手名入力 -->
-        <div class="right-column">
-          <!-- 先攻チーム -->
-          <section class="lineup-section">
-            <h3 class="lineup-team-title">先攻（アウェイ）打順</h3>
-            <div id="lineup-input-away" class="lineup-input-panel">
-              <!-- 動的に生成 -->
-            </div>
-          </section>
-          
-          <!-- 後攻チーム -->
-          <section class="lineup-section">
-            <h3 class="lineup-team-title">後攻（ホーム）打順</h3>
-            <div id="lineup-input-home" class="lineup-input-panel">
-              <!-- 動的に生成 -->
-            </div>
           </section>
         </div>
       </div>

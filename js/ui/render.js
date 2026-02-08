@@ -447,133 +447,144 @@ export function generateLineupInputs(state, players = [], teamSelections = {away
         const container = document.getElementById(`lineup-input-${team}`);
         if (!container) return;
         
-        container.innerHTML = '';
+        // 既存の構造があるか確認
+        const hasStructure = container.querySelector('.lineup-item');
         
         // 選択されたチームの選手をフィルタリング
         const teamId = teamSelections[team];
         const teamPlayers = teamId ? players.filter(p => p.team_id === parseInt(teamId)) : [];
         
-        for (let i = 0; i < 9; i++) {
-            const row = document.createElement('div');
-            row.className = 'lineup-item';
+        if (!hasStructure) {
+            // 構造がない場合は動的に生成 (フォールバック)
+            // Previously existing logic (re-implemented here for fallback)
+            container.innerHTML = '';
             
-            const num = document.createElement('span');
-            num.className = 'lineup-number';
-            num.textContent = (i + 1);
-            row.appendChild(num);
-            
-            // 選手名をプルダウンで選択
-            const nameSelect = document.createElement('select');
-            nameSelect.className = 'lineup-input-name';
-            nameSelect.dataset.team = team;
-            nameSelect.dataset.order = i;
-            
-            // 空のオプション
-            const emptyOpt = document.createElement('option');
-            emptyOpt.value = '';
-            emptyOpt.textContent = '選手を選択...';
-            nameSelect.appendChild(emptyOpt);
-            
-            // チームの選手を追加
-            teamPlayers.forEach(player => {
-                const opt = document.createElement('option');
-                opt.value = player.name;
-                opt.textContent = `${player.name} (#${player.number || '-'})`;
-                if (state.lineup[team][i] === player.name) {
-                    opt.selected = true;
-                }
-                nameSelect.appendChild(opt);
-            });
-            
-            // 現在の値がリストにない場合は追加
-            const currentName = state.lineup[team][i];
-            if (currentName && !teamPlayers.find(p => p.name === currentName)) {
-                const customOpt = document.createElement('option');
-                customOpt.value = currentName;
-                customOpt.textContent = currentName;
-                customOpt.selected = true;
-                nameSelect.appendChild(customOpt);
+            for (let i = 0; i < 9; i++) {
+                const row = document.createElement('div');
+                row.className = 'lineup-item';
+                
+                const num = document.createElement('span');
+                num.className = 'lineup-number';
+                num.textContent = (i + 1);
+                row.appendChild(num);
+                
+                const nameSelect = document.createElement('select');
+                nameSelect.className = 'lineup-input-name';
+                nameSelect.dataset.team = team;
+                nameSelect.dataset.order = i;
+                
+                populatePlayerOptions(nameSelect, teamPlayers, state.lineup[team][i]);
+                
+                row.appendChild(nameSelect);
+                
+                const posSelect = document.createElement('select');
+                posSelect.className = 'lineup-input-pos';
+                posSelect.dataset.team = team;
+                posSelect.dataset.order = i;
+                
+                POSITIONS.forEach(pos => {
+                    const opt = document.createElement('option');
+                    opt.value = pos;
+                    opt.textContent = pos;
+                    if (state.positions && state.positions[team][i] === pos) {
+                        opt.selected = true;
+                    }
+                    posSelect.appendChild(opt);
+                });
+                row.appendChild(posSelect);
+                
+                container.appendChild(row);
             }
             
-            row.appendChild(nameSelect);
+            // Pitcher
+            const pRow = document.createElement('div');
+            pRow.className = 'lineup-item pitcher-row';
+            pRow.style.marginTop = '10px';
+            pRow.style.paddingTop = '10px';
+            pRow.style.borderTop = '1px dashed rgba(255, 215, 0, 0.3)';
             
-            const posSelect = document.createElement('select');
-            posSelect.className = 'lineup-input-pos';
-            posSelect.dataset.team = team;
-            posSelect.dataset.order = i;
+            const pLabel = document.createElement('span');
+            pLabel.className = 'lineup-number';
+            pLabel.textContent = 'P';
+            pLabel.style.fontWeight = 'bold';
+            pLabel.style.color = '#e74c3c';
+            pRow.appendChild(pLabel);
             
-            POSITIONS.forEach(pos => {
-                const opt = document.createElement('option');
-                opt.value = pos;
-                opt.textContent = pos;
-                if (state.positions && state.positions[team][i] === pos) {
-                    opt.selected = true;
+            const pSelect = document.createElement('select');
+            pSelect.className = 'lineup-input-pitcher';
+            pSelect.dataset.team = team;
+            
+            populatePlayerOptions(pSelect, teamPlayers, state.pitcher ? state.pitcher[team] : '');
+            
+            pRow.appendChild(pSelect);
+            
+            const pPos = document.createElement('span');
+            pPos.className = 'lineup-pos-fixed';
+            pPos.textContent = '投';
+            pPos.style.display = 'inline-block';
+            pPos.style.width = '55px';
+            pPos.style.textAlign = 'center';
+            pPos.style.fontSize = '11px';
+            pPos.style.color = '#ffd700';
+            pRow.appendChild(pPos);
+            
+            container.appendChild(pRow);
+            
+        } else {
+            // 既存の構造がある場合は、中身（オプションと値）だけ更新
+            for (let i = 0; i < 9; i++) {
+                const nameSelect = container.querySelector(`.lineup-input-name[data-order="${i}"]`);
+                if (nameSelect) {
+                    populatePlayerOptions(nameSelect, teamPlayers, state.lineup[team][i]);
                 }
-                posSelect.appendChild(opt);
-            });
-            row.appendChild(posSelect);
-            
-            container.appendChild(row);
-        }
-
-        // Pitcher (DH)
-        const pRow = document.createElement('div');
-        pRow.className = 'lineup-item pitcher-row';
-        pRow.style.marginTop = '10px';
-        pRow.style.paddingTop = '10px';
-        pRow.style.borderTop = '1px dashed rgba(255, 215, 0, 0.3)';
-        
-        const pLabel = document.createElement('span');
-        pLabel.className = 'lineup-number';
-        pLabel.textContent = 'P';
-        pLabel.style.fontWeight = 'bold';
-        pLabel.style.color = '#e74c3c';
-        pRow.appendChild(pLabel);
-        
-        // 投手もプルダウンで選択
-        const pSelect = document.createElement('select');
-        pSelect.className = 'lineup-input-pitcher';
-        pSelect.dataset.team = team;
-        
-        const pEmptyOpt = document.createElement('option');
-        pEmptyOpt.value = '';
-        pEmptyOpt.textContent = '投手を選択...';
-        pSelect.appendChild(pEmptyOpt);
-        
-        teamPlayers.forEach(player => {
-            const opt = document.createElement('option');
-            opt.value = player.name;
-            opt.textContent = `${player.name} (#${player.number || '-'})`;
-            if (state.pitcher && state.pitcher[team] === player.name) {
-                opt.selected = true;
+                
+                const posSelect = container.querySelector(`.lineup-input-pos[data-order="${i}"]`);
+                if (posSelect && state.positions && state.positions[team][i]) {
+                    posSelect.value = state.positions[team][i];
+                }
             }
-            pSelect.appendChild(opt);
-        });
-        
-        // 現在の値がリストにない場合は追加
-        const currentPitcher = state.pitcher ? state.pitcher[team] : '';
-        if (currentPitcher && !teamPlayers.find(p => p.name === currentPitcher)) {
-            const customOpt = document.createElement('option');
-            customOpt.value = currentPitcher;
-            customOpt.textContent = currentPitcher;
-            customOpt.selected = true;
-            pSelect.appendChild(customOpt);
+            
+            // Pitcher
+            const pSelect = container.querySelector(`.lineup-input-pitcher[data-team="${team}"]`);
+            if (pSelect) {
+                populatePlayerOptions(pSelect, teamPlayers, state.pitcher ? state.pitcher[team] : '');
+            }
         }
-        
-        pRow.appendChild(pSelect);
-        
-        const pPos = document.createElement('span');
-        pPos.className = 'lineup-pos-fixed';
-        pPos.textContent = '投';
-        pPos.style.display = 'inline-block';
-        pPos.style.width = '55px';
-        pPos.style.textAlign = 'center';
-        pPos.style.fontSize = '11px';
-        pPos.style.color = '#ffd700';
-        pRow.appendChild(pPos);
-        
-        container.appendChild(pRow);
     });
+}
+
+/**
+ * 選手プルダウンのオプションを生成・更新するヘルパー関数
+ */
+function populatePlayerOptions(selectElement, players, currentValue) {
+    // 既存のオプションをクリア
+    selectElement.innerHTML = '';
+    
+    // 空のオプション
+    const emptyOpt = document.createElement('option');
+    emptyOpt.value = '';
+    emptyOpt.textContent = '選手を選択...';
+    selectElement.appendChild(emptyOpt);
+    
+    // チームの選手を追加
+    players.forEach(player => {
+        const opt = document.createElement('option');
+        opt.value = player.name;
+        opt.textContent = `${player.name} (#${player.number || '-'})`;
+        selectElement.appendChild(opt);
+    });
+    
+    // 値をセット (値が存在すればselectedも設定される)
+    if (currentValue) {
+        // リストにない場合追加
+        if (currentValue !== '' && !players.find(p => p.name === currentValue)) {
+            const customOpt = document.createElement('option');
+            customOpt.value = currentValue;
+            customOpt.textContent = currentValue;
+            selectElement.appendChild(customOpt);
+        }
+        selectElement.value = currentValue;
+    }
 }
 
 // Helper Functions

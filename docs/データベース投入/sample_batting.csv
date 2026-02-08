@@ -1,0 +1,4 @@
+player_id,season,batting_average,games,at_bats,hits,home_runs,rbis,ops
+1,2025,0.315,143,550,173,30,85,0.950
+2,2025,0.280,130,500,140,20,70,0.800
+3,2025,,,10,2,,,

@@ -40,5 +40,22 @@ services:
       - ./server:/app
       - /app/node_modules
 
+  # Python APIサーバー (成績管理用)
+  python-api:
+    build: ./server/python-backend
+    container_name: baseball-python-api
+    ports:
+      - "5000:5000"
+    environment:
+      DB_HOST: mysql
+      DB_USER: baseball
+      DB_PASSWORD: baseball123
+      DB_NAME: baseball_live
+    depends_on:
+      mysql:
+        condition: service_healthy
+    volumes:
+      - ./server/python-backend:/app
+
 volumes:
   mysql_data:

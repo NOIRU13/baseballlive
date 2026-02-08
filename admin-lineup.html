@@ -1,0 +1,652 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>打順管理パネル - Baseball Live</title>
+    <link rel="stylesheet" href="style.css" />
+    <style>
+      /* 打順管理専用スタイル */
+      body.admin-mode {
+        margin: 0;
+        padding: 8px;
+        background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+        font-family: 'Noto Sans JP', sans-serif;
+        overflow-y: auto;
+        max-width: 1200px;
+        max-height: 600px;
+      }
+      
+      .control-panel {
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 10px;
+        padding: 8px;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        min-height: calc(100vh - 16px); /* height固定をやめ、最低高さを確保 */
+      }
+      
+      .panel-title {
+        color: #ffd700;
+        font-size: 14px;
+        font-weight: bold;
+        text-align: center;
+        margin: 0;
+        text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+      }
+      
+      /* リンクセクション */
+      .link-section {
+        display: flex;
+        gap: 6px;
+        background: rgba(255, 255, 255, 0.03);
+        border-radius: 6px;
+        padding: 6px;
+        border: 1px solid rgba(255, 215, 0, 0.2);
+      }
+      
+      .btn-link {
+        flex: 1;
+        padding: 6px;
+        font-size: 10px;
+        text-decoration: none;
+        display: block;
+        text-align: center;
+      }
+      
+      /* チーム選択セクション */
+      .team-select-section {
+        background: rgba(255, 255, 255, 0.03);
+        border-radius: 6px;
+        padding: 8px;
+        border: 1px solid rgba(255, 215, 0, 0.2);
+      }
+      
+      .team-select-section h2 {
+        color: #ffd700;
+        font-size: 12px;
+        margin: 0 0 8px 0;
+        font-weight: 600;
+        text-align: center;
+      }
+      
+      .team-inputs {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+      }
+      
+      .input-group {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+      
+      .input-group label {
+        color: #fff;
+        font-size: 10px;
+        font-weight: 500;
+      }
+      
+      .input-group select {
+        padding: 6px;
+        border: 1px solid rgba(255, 215, 0, 0.3);
+        border-radius: 4px;
+        background: rgba(255, 255, 255, 0.1);
+        color: #fff;
+        font-size: 11px;
+        width: 100%;
+        cursor: pointer;
+      }
+      
+      .input-group select option {
+        background: #1a1a2e;
+        color: #fff;
+      }
+      
+      /* 打順入力セクション */
+      .lineups-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        flex: 1;
+        /* overflow: hidden;  <- 削除: 折り返し時にコンテンツが見えなくなるのを防ぐ */
+      }
+
+      .lineup-section {
+        background: rgba(255, 255, 255, 0.03);
+        border-radius: 6px;
+        padding: 8px;
+        border: 1px solid rgba(255, 215, 0, 0.2);
+        flex: 1 1 300px; /* 最小幅300pxを維持しつつ伸縮 */
+        display: flex;
+        flex-direction: column;
+        /* 高さの調整: 画面内に収めるか、コンテンツに合わせるか */
+        min-height: 400px; /* 最低限の高さを確保 */
+      }
+      
+      .lineup-team-title {
+        color: #ffd700;
+        font-size: 13px;
+        margin: 0 0 10px 0;
+        font-weight: 600;
+        text-align: center;
+        text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+      }
+      
+      .lineup-input-panel {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        flex: 1;
+      }
+      
+      .lineup-item {
+        display: flex;
+        gap: 6px;
+        align-items: center;
+      }
+      
+      .lineup-number {
+        color: #ffd700;
+        font-size: 13px;
+        font-weight: bold;
+        min-width: 22px;
+        text-align: center;
+      }
+      
+      .lineup-item input,
+      .lineup-item select {
+        flex: 1;
+        padding: 7px;
+        border: 1px solid rgba(255, 215, 0, 0.2);
+        border-radius: 4px;
+        background: rgba(255, 255, 255, 0.05);
+        color: #fff;
+        font-size: 13px;
+        transition: all 0.2s;
+      }
+      
+      .lineup-item input:focus,
+      .lineup-item select:focus {
+        outline: none;
+        border-color: rgba(255, 215, 0, 0.5);
+        background: rgba(255, 255, 255, 0.08);
+      }
+      
+      .lineup-item select {
+        font-size: 11px;
+        width: 60px;
+        cursor: pointer;
+      }
+      
+      .lineup-item select option {
+        background: #1a1a2e;
+        color: #fff;
+      }
+      
+      /* ボタン共通スタイル */
+      .btn {
+        border: none;
+        border-radius: 5px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s;
+        color: #fff;
+        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+        background: linear-gradient(135deg, #3498db, #2980b9);
+      }
+      
+      .btn:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+      }
+      
+      .btn:active {
+        transform: translateY(0);
+      }
+      
+      /* スクロールバーのスタイリング */
+      .lineup-input-panel::-webkit-scrollbar {
+        width: 6px;
+      }
+      
+      .lineup-input-panel::-webkit-scrollbar-track {
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 3px;
+      }
+      
+      .lineup-input-panel::-webkit-scrollbar-thumb {
+        background: rgba(255, 215, 0, 0.3);
+        border-radius: 3px;
+      }
+      
+      .lineup-input-panel::-webkit-scrollbar-thumb:hover {
+        background: rgba(255, 215, 0, 0.5);
+      }
+      /* ピッチャー行のスタイルを追加 */
+      .pitcher-row {
+        margin-top: 10px;
+        padding-top: 10px;
+        border-top: 1px dashed rgba(255, 215, 0, 0.3);
+      }
+      
+      .lineup-pos-fixed {
+        display: inline-block;
+        width: 55px;
+        text-align: center;
+        font-size: 11px;
+        color: #ffd700;
+      }
+    </style>
+  </head>
+  <body class="admin-mode">
+    <div class="control-panel">
+      <h1 class="panel-title">⚾ 打順管理パネル</h1>
+      
+      <!-- リンクセクション -->
+      <section class="link-section">
+        <a href="index.html" target="_blank" class="btn btn-link">📺 スコアボード</a>
+        <a href="admin-simple.html" target="_blank" class="btn btn-link">🎮 簡易操作</a>
+        <a href="admin-control.html" target="_blank" class="btn btn-link">⚙️ 試合管理</a>
+        <a href="admin-db.html" target="_blank" class="btn btn-link">🗄️ DB管理</a>
+      </section>
+      
+      <!-- チーム選択セクション -->
+      <section class="team-select-section">
+        <h2>チーム選択</h2>
+        <div class="team-inputs">
+          <div class="input-group">
+            <label for="away-team-select">先攻チーム</label>
+            <select id="away-team-select" class="team-select">
+              <option value="">チームを選択...</option>
+            </select>
+          </div>
+          <div class="input-group">
+            <label for="home-team-select">後攻チーム</label>
+            <select id="home-team-select" class="team-select">
+              <option value="">チームを選択...</option>
+            </select>
+          </div>
+        </div>
+      </section>
+      
+      <!-- 打順入力セクション（左右配置） -->
+      <div class="lineups-row">
+        <!-- 先攻チーム（左側） -->
+        <section class="lineup-section">
+          <h3 class="lineup-team-title">先攻（ビジター）打順</h3>
+          <div id="lineup-input-away" class="lineup-input-panel">
+            <div class="lineup-item">
+              <span class="lineup-number">1</span>
+              <select class="lineup-input-name" data-team="away" data-order="0">
+                <option value="">選手を選択...</option>
+              </select>
+              <select class="lineup-input-pos" data-team="away" data-order="0">
+                <option value="投">投</option>
+                <option value="捕">捕</option>
+                <option value="一">一</option>
+                <option value="二">二</option>
+                <option value="三">三</option>
+                <option value="遊">遊</option>
+                <option value="左">左</option>
+                <option value="中">中</option>
+                <option value="右">右</option>
+                <option value="指">指</option>
+                <option value="代">代</option>
+              </select>
+            </div>
+            <div class="lineup-item">
+              <span class="lineup-number">2</span>
+              <select class="lineup-input-name" data-team="away" data-order="1">
+                <option value="">選手を選択...</option>
+              </select>
+              <select class="lineup-input-pos" data-team="away" data-order="1">
+                <option value="投">投</option>
+                <option value="捕">捕</option>
+                <option value="一">一</option>
+                <option value="二">二</option>
+                <option value="三">三</option>
+                <option value="遊">遊</option>
+                <option value="左">左</option>
+                <option value="中">中</option>
+                <option value="右">右</option>
+                <option value="指">指</option>
+                <option value="代">代</option>
+              </select>
+            </div>
+            <div class="lineup-item">
+              <span class="lineup-number">3</span>
+              <select class="lineup-input-name" data-team="away" data-order="2">
+                <option value="">選手を選択...</option>
+              </select>
+              <select class="lineup-input-pos" data-team="away" data-order="2">
+                <option value="投">投</option>
+                <option value="捕">捕</option>
+                <option value="一">一</option>
+                <option value="二">二</option>
+                <option value="三">三</option>
+                <option value="遊">遊</option>
+                <option value="左">左</option>
+                <option value="中">中</option>
+                <option value="右">右</option>
+                <option value="指">指</option>
+                <option value="代">代</option>
+              </select>
+            </div>
+            <div class="lineup-item">
+              <span class="lineup-number">4</span>
+              <select class="lineup-input-name" data-team="away" data-order="3">
+                <option value="">選手を選択...</option>
+              </select>
+              <select class="lineup-input-pos" data-team="away" data-order="3">
+                <option value="投">投</option>
+                <option value="捕">捕</option>
+                <option value="一">一</option>
+                <option value="二">二</option>
+                <option value="三">三</option>
+                <option value="遊">遊</option>
+                <option value="左">左</option>
+                <option value="中">中</option>
+                <option value="右">右</option>
+                <option value="指">指</option>
+                <option value="代">代</option>
+              </select>
+            </div>
+            <div class="lineup-item">
+              <span class="lineup-number">5</span>
+              <select class="lineup-input-name" data-team="away" data-order="4">
+                <option value="">選手を選択...</option>
+              </select>
+              <select class="lineup-input-pos" data-team="away" data-order="4">
+                <option value="投">投</option>
+                <option value="捕">捕</option>
+                <option value="一">一</option>
+                <option value="二">二</option>
+                <option value="三">三</option>
+                <option value="遊">遊</option>
+                <option value="左">左</option>
+                <option value="中">中</option>
+                <option value="右">右</option>
+                <option value="指">指</option>
+                <option value="代">代</option>
+              </select>
+            </div>
+            <div class="lineup-item">
+              <span class="lineup-number">6</span>
+              <select class="lineup-input-name" data-team="away" data-order="5">
+                <option value="">選手を選択...</option>
+              </select>
+              <select class="lineup-input-pos" data-team="away" data-order="5">
+                <option value="投">投</option>
+                <option value="捕">捕</option>
+                <option value="一">一</option>
+                <option value="二">二</option>
+                <option value="三">三</option>
+                <option value="遊">遊</option>
+                <option value="左">左</option>
+                <option value="中">中</option>
+                <option value="右">右</option>
+                <option value="指">指</option>
+                <option value="代">代</option>
+              </select>
+            </div>
+            <div class="lineup-item">
+              <span class="lineup-number">7</span>
+              <select class="lineup-input-name" data-team="away" data-order="6">
+                <option value="">選手を選択...</option>
+              </select>
+              <select class="lineup-input-pos" data-team="away" data-order="6">
+                <option value="投">投</option>
+                <option value="捕">捕</option>
+                <option value="一">一</option>
+                <option value="二">二</option>
+                <option value="三">三</option>
+                <option value="遊">遊</option>
+                <option value="左">左</option>
+                <option value="中">中</option>
+                <option value="右">右</option>
+                <option value="指">指</option>
+                <option value="代">代</option>
+              </select>
+            </div>
+            <div class="lineup-item">
+              <span class="lineup-number">8</span>
+              <select class="lineup-input-name" data-team="away" data-order="7">
+                <option value="">選手を選択...</option>
+              </select>
+              <select class="lineup-input-pos" data-team="away" data-order="7">
+                <option value="投">投</option>
+                <option value="捕">捕</option>
+                <option value="一">一</option>
+                <option value="二">二</option>
+                <option value="三">三</option>
+                <option value="遊">遊</option>
+                <option value="左">左</option>
+                <option value="中">中</option>
+                <option value="右">右</option>
+                <option value="指">指</option>
+                <option value="代">代</option>
+              </select>
+            </div>
+            <div class="lineup-item">
+              <span class="lineup-number">9</span>
+              <select class="lineup-input-name" data-team="away" data-order="8">
+                <option value="">選手を選択...</option>
+              </select>
+              <select class="lineup-input-pos" data-team="away" data-order="8">
+                <option value="投">投</option>
+                <option value="捕">捕</option>
+                <option value="一">一</option>
+                <option value="二">二</option>
+                <option value="三">三</option>
+                <option value="遊">遊</option>
+                <option value="左">左</option>
+                <option value="中">中</option>
+                <option value="右">右</option>
+                <option value="指">指</option>
+                <option value="代">代</option>
+              </select>
+            </div>
+            <div class="lineup-item pitcher-row">
+              <span class="lineup-number" style="font-weight: bold; color: #e74c3c;">P</span>
+              <select class="lineup-input-pitcher" data-team="away">
+                <option value="">投手を選択...</option>
+              </select>
+              <span class="lineup-pos-fixed">投</span>
+            </div>
+          </div>
+        </section>
+        
+        <!-- 後攻チーム（右側） -->
+        <section class="lineup-section">
+          <h3 class="lineup-team-title">後攻（ホーム）打順</h3>
+          <div id="lineup-input-home" class="lineup-input-panel">
+            <div class="lineup-item">
+              <span class="lineup-number">1</span>
+              <select class="lineup-input-name" data-team="home" data-order="0">
+                <option value="">選手を選択...</option>
+              </select>
+              <select class="lineup-input-pos" data-team="home" data-order="0">
+                <option value="投">投</option>
+                <option value="捕">捕</option>
+                <option value="一">一</option>
+                <option value="二">二</option>
+                <option value="三">三</option>
+                <option value="遊">遊</option>
+                <option value="左">左</option>
+                <option value="中">中</option>
+                <option value="右">右</option>
+                <option value="指">指</option>
+                <option value="代">代</option>
+              </select>
+            </div>
+            <div class="lineup-item">
+              <span class="lineup-number">2</span>
+              <select class="lineup-input-name" data-team="home" data-order="1">
+                <option value="">選手を選択...</option>
+              </select>
+              <select class="lineup-input-pos" data-team="home" data-order="1">
+                <option value="投">投</option>
+                <option value="捕">捕</option>
+                <option value="一">一</option>
+                <option value="二">二</option>
+                <option value="三">三</option>
+                <option value="遊">遊</option>
+                <option value="左">左</option>
+                <option value="中">中</option>
+                <option value="右">右</option>
+                <option value="指">指</option>
+                <option value="代">代</option>
+              </select>
+            </div>
+            <div class="lineup-item">
+              <span class="lineup-number">3</span>
+              <select class="lineup-input-name" data-team="home" data-order="2">
+                <option value="">選手を選択...</option>
+              </select>
+              <select class="lineup-input-pos" data-team="home" data-order="2">
+                <option value="投">投</option>
+                <option value="捕">捕</option>
+                <option value="一">一</option>
+                <option value="二">二</option>
+                <option value="三">三</option>
+                <option value="遊">遊</option>
+                <option value="左">左</option>
+                <option value="中">中</option>
+                <option value="右">右</option>
+                <option value="指">指</option>
+                <option value="代">代</option>
+              </select>
+            </div>
+            <div class="lineup-item">
+              <span class="lineup-number">4</span>
+              <select class="lineup-input-name" data-team="home" data-order="3">
+                <option value="">選手を選択...</option>
+              </select>
+              <select class="lineup-input-pos" data-team="home" data-order="3">
+                <option value="投">投</option>
+                <option value="捕">捕</option>
+                <option value="一">一</option>
+                <option value="二">二</option>
+                <option value="三">三</option>
+                <option value="遊">遊</option>
+                <option value="左">左</option>
+                <option value="中">中</option>
+                <option value="右">右</option>
+                <option value="指">指</option>
+                <option value="代">代</option>
+              </select>
+            </div>
+            <div class="lineup-item">
+              <span class="lineup-number">5</span>
+              <select class="lineup-input-name" data-team="home" data-order="4">
+                <option value="">選手を選択...</option>
+              </select>
+              <select class="lineup-input-pos" data-team="home" data-order="4">
+                <option value="投">投</option>
+                <option value="捕">捕</option>
+                <option value="一">一</option>
+                <option value="二">二</option>
+                <option value="三">三</option>
+                <option value="遊">遊</option>
+                <option value="左">左</option>
+                <option value="中">中</option>
+                <option value="右">右</option>
+                <option value="指">指</option>
+                <option value="代">代</option>
+              </select>
+            </div>
+            <div class="lineup-item">
+              <span class="lineup-number">6</span>
+              <select class="lineup-input-name" data-team="home" data-order="5">
+                <option value="">選手を選択...</option>
+              </select>
+              <select class="lineup-input-pos" data-team="home" data-order="5">
+                <option value="投">投</option>
+                <option value="捕">捕</option>
+                <option value="一">一</option>
+                <option value="二">二</option>
+                <option value="三">三</option>
+                <option value="遊">遊</option>
+                <option value="左">左</option>
+                <option value="中">中</option>
+                <option value="右">右</option>
+                <option value="指">指</option>
+                <option value="代">代</option>
+              </select>
+            </div>
+            <div class="lineup-item">
+              <span class="lineup-number">7</span>
+              <select class="lineup-input-name" data-team="home" data-order="6">
+                <option value="">選手を選択...</option>
+              </select>
+              <select class="lineup-input-pos" data-team="home" data-order="6">
+                <option value="投">投</option>
+                <option value="捕">捕</option>
+                <option value="一">一</option>
+                <option value="二">二</option>
+                <option value="三">三</option>
+                <option value="遊">遊</option>
+                <option value="左">左</option>
+                <option value="中">中</option>
+                <option value="右">右</option>
+                <option value="指">指</option>
+                <option value="代">代</option>
+              </select>
+            </div>
+            <div class="lineup-item">
+              <span class="lineup-number">8</span>
+              <select class="lineup-input-name" data-team="home" data-order="7">
+                <option value="">選手を選択...</option>
+              </select>
+              <select class="lineup-input-pos" data-team="home" data-order="7">
+                <option value="投">投</option>
+                <option value="捕">捕</option>
+                <option value="一">一</option>
+                <option value="二">二</option>
+                <option value="三">三</option>
+                <option value="遊">遊</option>
+                <option value="左">左</option>
+                <option value="中">中</option>
+                <option value="右">右</option>
+                <option value="指">指</option>
+                <option value="代">代</option>
+              </select>
+            </div>
+            <div class="lineup-item">
+              <span class="lineup-number">9</span>
+              <select class="lineup-input-name" data-team="home" data-order="8">
+                <option value="">選手を選択...</option>
+              </select>
+              <select class="lineup-input-pos" data-team="home" data-order="8">
+                <option value="投">投</option>
+                <option value="捕">捕</option>
+                <option value="一">一</option>
+                <option value="二">二</option>
+                <option value="三">三</option>
+                <option value="遊">遊</option>
+                <option value="左">左</option>
+                <option value="中">中</option>
+                <option value="右">右</option>
+                <option value="指">指</option>
+                <option value="代">代</option>
+              </select>
+            </div>
+            <div class="lineup-item pitcher-row">
+              <span class="lineup-number" style="font-weight: bold; color: #e74c3c;">P</span>
+              <select class="lineup-input-pitcher" data-team="home">
+                <option value="">投手を選択...</option>
+              </select>
+              <span class="lineup-pos-fixed">投</span>
+            </div>
+          </div>
+        </section>
+      </div>
+    </div>
+    
+    <script type="module" src="js/app.js"></script>
+  </body>
+</html>
