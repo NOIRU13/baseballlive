@@ -1162,16 +1162,12 @@ function handleBulkSubstitution(team) {
                     runs: hist.runs || 0,
                     earnedRuns: hist.earnedRuns || 0,
                     pitchCount: hist.pitchCount || 0,
-                    runsFromLog: hist.runs || 0,
-                    earnedRunsFromLog: hist.earnedRuns || 0,
-                    outs: (hist.innings * 3) % 3
+                    outs: hist.outs !== undefined ? hist.outs : ((hist.innings * 3) % 3)
                 };
-                if (hist.outs !== undefined) State.state.pitcherStats[team].outs = hist.outs;
             } else {
                 if (!State.state.pitcherStats) State.state.pitcherStats = { away: {}, home: {} };
                 State.state.pitcherStats[team] = {
-                    innings: 0, strikeouts: 0, walks: 0, runs: 0, earnedRuns: 0, pitchCount: 0,
-                    runsFromLog: 0, earnedRunsFromLog: 0, outs: 0
+                    innings: 0, strikeouts: 0, walks: 0, runs: 0, earnedRuns: 0, pitchCount: 0, outs: 0
                 };
             }
 

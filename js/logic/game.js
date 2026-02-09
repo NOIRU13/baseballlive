@@ -157,10 +157,12 @@ export function updatePitcherStats(state, team) {
     }
 
     // 失点の計算（相手チームの得点合計 - 登板時の得点）
-    const opposingTeam = team === 'home' ? 'away' : 'home';
-    const totalRuns = state.scores[opposingTeam].reduce((sum, score) => sum + (score || 0), 0);
-    const runsAtStart = state.pitcherStats[team].runsAtStart || 0;
-    state.pitcherStats[team].runs = totalRuns - runsAtStart;
+    // NOTE: 自動計算は手動編集と競合するため停止。app.js側で打席結果から加算される。
+    // const opposingTeam = team === 'home' ? 'away' : 'home';
+    // const totalRuns = state.scores[opposingTeam].reduce((sum, score) => sum + (score || 0), 0);
+    // const runsAtStart = state.pitcherStats[team].runsAtStart || 0;
+    // state.pitcherStats[team].runs = totalRuns - runsAtStart;
+
 
     // 投球回数の計算（アウト数から）
     const outs = state.pitcherStats[team].outs || 0;
@@ -254,13 +256,13 @@ export function recordAtBatResult(state, resultCode, hasLog = false) {
     }
     // その他のアウト (犠打、犠飛含む)
     else if (['groundout', 'flyout', 'lineout', 'dp', 'sacrifice', 'sac_fly'].includes(resultCode)) {
-        recordOut(state);
         if (resultCode === 'dp') {
-             // 併殺はアウト2つ
-             addOut(state);
-             isChange = addOut(state);
+            // 併殺はアウト2つ (addOut内でrecordOutも呼ばれる)
+            addOut(state);
+            isChange = addOut(state);
         } else {
-             isChange = addOut(state);
+            // 通常のアウトは1つ
+            isChange = addOut(state);
         }
     }
     

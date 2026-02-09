@@ -1406,22 +1406,20 @@ export function updatePitcherRelay(state) {
                 nameSpan.className = 'pitcher-name';
                 nameSpan.textContent = name;
                 
-                // Stats取得
+                // Stats取得 (投手ログ＝Historyをソースにする)
                 let stats = { innings: 0, runs: 0, earnedRuns: 0 };
+                const h = (state.pitcherStatsHistory && state.pitcherStatsHistory[name]) ? state.pitcherStatsHistory[name] : null;
                 
-                // 1. Historyから取得
-                if (state.pitcherStatsHistory && state.pitcherStatsHistory[name]) {
-                    const h = state.pitcherStatsHistory[name];
-                    stats.innings = h.innings || 0;
-                    stats.runs = h.earnedRuns !== undefined ? h.earnedRuns : (h.runs || 0); // 失点or自責点 (User said "Runs Allowed", using Runs for now, actually user said "何失点" which is Runs)
-                    stats.runs = h.runs || 0;
-                }
-                
-                // 2. 現在の投手なら、現在のStatsで上書き (最新情報)
-                if (name === currentPitcherName && state.pitcherStats && state.pitcherStats[team]) {
+                if (h) {
+                    stats.innings = h.innings !== undefined ? h.innings : 0;
+                    stats.runs = h.runs !== undefined ? h.runs : 0;
+                    stats.earnedRuns = h.earnedRuns !== undefined ? h.earnedRuns : 0;
+                } else if (name === currentPitcherName && state.pitcherStats && state.pitcherStats[team]) {
+                    // Historyにないが現在登板中の場合 (初登板時など)
                     const c = state.pitcherStats[team];
-                    stats.innings = c.innings || 0;
-                    stats.runs = c.runsFromLog !== undefined ? c.runsFromLog : (c.runs || 0);
+                    stats.innings = c.innings !== undefined ? c.innings : 0;
+                    stats.runs = c.runs !== undefined ? c.runs : 0;
+                    stats.earnedRuns = c.earnedRuns !== undefined ? c.earnedRuns : 0;
                 }
                 
                 // フォーマット

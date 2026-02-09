@@ -1,11 +1,11 @@
 {
     "teams": {
-        "home": "",
-        "away": ""
+        "home": "東北楽天ゴールデンイーグルス",
+        "away": "東北楽天ゴールデンイーグルス"
     },
     "teamShortNames": {
-        "home": "",
-        "away": ""
+        "home": "東北楽天",
+        "away": "東北楽天"
     },
     "inning": {
         "number": 1,
@@ -65,50 +65,50 @@
     },
     "lineup": {
         "home": [
-            "",
-            "",
-            "",
-            "",
-            "",
-            "",
-            "",
-            "",
-            ""
+            "中島 大輔",
+            "黒川 史陽",
+            "辰己 涼介",
+            "ルーク・ボイト",
+            "浅村 栄斗",
+            "宗山 塁",
+            "村林 一輝",
+            "堀内 謙伍",
+            "佐藤 直樹"
         ],
         "away": [
-            "",
-            "",
-            "",
-            "",
-            "",
-            "",
-            "",
-            "",
-            ""
+            "中島 大輔",
+            "黒川 史陽",
+            "辰己 涼介",
+            "ルーク・ボイト",
+            "浅村 栄斗",
+            "宗山 塁",
+            "村林 一輝",
+            "堀内 謙伍",
+            "佐藤 直樹"
         ]
     },
     "positions": {
         "home": [
-            "",
-            "",
-            "",
-            "",
-            "",
-            "",
-            "",
-            "",
-            ""
+            "CF",
+            "2B",
+            "RF",
+            "DH",
+            "1B",
+            "SS",
+            "3B",
+            "C",
+            "LF"
         ],
         "away": [
-            "",
-            "",
-            "",
-            "",
-            "",
-            "",
-            "",
-            "",
-            ""
+            "CF",
+            "2B",
+            "RF",
+            "DH",
+            "1B",
+            "SS",
+            "3B",
+            "C",
+            "LF"
         ]
     },
     "currentBatter": {
@@ -141,8 +141,8 @@
     },
     "resultHistory": [],
     "pitcher": {
-        "home": "",
-        "away": ""
+        "home": "泰 勝利",
+        "away": "泰 勝利"
     },
     "todayRBI": {
         "home": [
@@ -189,8 +189,8 @@
         }
     },
     "startingPitcher": {
-        "home": "",
-        "away": ""
+        "home": "泰 勝利",
+        "away": "泰 勝利"
     },
     "pitcherHistory": {
         "home": [],
@@ -199,5 +199,9 @@
     "scoreLogs": [],
     "atBatLog": [],
     "pitcherStatsHistory": [],
-    "scoreAtStartOfAtBat": 0
+    "scoreAtStartOfAtBat": 0,
+    "lastResult": {
+        "type": "LINEUP_ANNOUNCEMENT",
+        "timestamp": 1770598230109
+    }
 }
